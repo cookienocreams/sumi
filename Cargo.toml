@@ -1,0 +1,27 @@
+[package]
+name = "umi_srna_analysis"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+petgraph = "0.5.1"
+maplit = "1.0.2"
+hamming = "0.1"
+hashbrown = "0.13.2"
+bam = "0.1.4"
+regex = "1.5.4"
+bio = "1.1.0"
+lazy_static = "1.4.0"
+libflate = "0.1.4"
+seq_io = "0.3.1"
+thiserror = "1.0"
+flate2 = "1.0.26"
+fastq = "0.6"
+clap = "3"
+polars = { version = "0.26.1", features = ["lazy","temporal","describe","dtype-datetime"]}
+csv = "1.1.6"
+indicatif = "0.17.5"
+rand = "0.8.5"
+niffler = "2.3.0"
