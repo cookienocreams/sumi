@@ -23,7 +23,6 @@ extern crate lazy_static;
 use petgraph::graph::NodeIndex;
 use petgraph::Graph;
 use std::collections::{HashMap, HashSet};
-use petgraph::algo::connected_components;
 use std::str;
 use regex::Regex;
 use std::process::Command;
@@ -134,7 +133,7 @@ fn main() -> io::Result<()> {
         \n\nIt performs UMI error correction and deduplication using a directional graph algorithm.\
         This script implements a slightly modified directional graph algorithm that allows for a Hamming \
         Distance of 1 between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq and \
-        small RNA-seq using unique molecular identifiers. https://doi.org/10.1186/s12864-018-4933-1.\
+        small RNA-seq using unique molecular identifiers. https://doi.org/10.1186/s12864-018-4933-1. \
         It uses a five fold threshold, while the original algorithm uses a two fold count threshold.
 
         \nDependencies: cutadapt version >= 4, samtools version >= 1.10.1, bowtie2 version >= 2.2.1"
@@ -186,15 +185,6 @@ fn main() -> io::Result<()> {
                 .help("Subsample all fastqs in the current directory to a specified number of reads.")
         )
         .arg(
-            Arg::with_name("graph_search")
-                .short('g')
-                .long("search_algo")
-                .value_name("GRAPH_SEARCH")
-                .takes_value(true)
-                .help("Choose between traversing the graph based on connected components (WCC) or using a Breadth-First-Search (BFS)")
-                .default_value("WCC"),
-        )
-        .arg(
             Arg::with_name("subsample_to_lowest")
                 .short('l')
                 .long("sample-to-lowest")
@@ -231,15 +221,14 @@ fn main() -> io::Result<()> {
     let reference: &str = matches.value_of("alignment_reference").unwrap();
     let reference_name: &str = Path::new(reference).file_name().unwrap().to_str().unwrap();
     let include_unaligned_reads = matches.is_present("include_unaligned_reads");
-    let search_algo= matches.value_of("graph_search").unwrap();
     let thresholds: Vec<usize> = match matches.values_of("thresholds") {
         Some(values) => values.map(|x| x.parse::<usize>().expect("Threshold must be a number.")).collect(),
         None => vec![1, 3, 5, 10],
-    };    
+    };
     let subsample: Option<u32> = match matches.value_of("subsample_fastqs") {
-        Some(v) => match v.parse::<u32>() {
+        Some(count) => match count.parse::<u32>() {
             // The flag was present and the value was given and is valid
-            Ok(val) => Some(val),
+            Ok(value) => Some(value),
             // The flag was present and the value was given but is not valid.
             Err(_) => None,
         },
@@ -248,6 +237,9 @@ fn main() -> io::Result<()> {
     
     // Get fastq files
     let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
+    if fastq_files.is_empty() {
+        panic!("No fastq files were found");
+    }
 
     // Check to make sure all input files are gzipped
     for fastq in fastq_files.iter() {
@@ -307,8 +299,7 @@ fn main() -> io::Result<()> {
     let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs, sample_library_type.clone()
                                                                 , sample_names.clone()
                                                                 , reference, num_threads
-                                                                , include_unaligned_reads
-                                                                , search_algo) 
+                                                                , include_unaligned_reads) 
                                                                 else {panic!("An error occurred")};
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));

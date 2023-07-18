@@ -2,7 +2,6 @@ use std::collections::{HashMap, HashSet};
 use crate::io;
 use crate::Graph;
 use crate::NodeIndex;
-use crate::connected_components;
 use crate::UMI_REGEX;
 use crate::Error;
 use crate::bam::RecordWriter;
@@ -265,77 +264,6 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, i32>
     repr_umis
 }
 
-/// Find representative UMIs from a UMI graph.
-///
-/// This function examines each connected component in the given UMI graph and identifies
-/// the representative UMI for each component. A representative UMI is defined as the one
-/// with the highest count within its connected component.
-///
-/// # Arguments
-///
-/// * `graph` - A reference to the UMI graph which is of type `Graph<Vec<u8>, i32>`. Each node
-/// represents a unique UMI, and each edge represents a Hamming distance less than a specified
-/// threshold between two UMIs.
-///
-/// * `node_attributes` - A reference to a HashMap mapping node indices to a tuple of UMIs and 
-/// their counts. The key is a `NodeIndex`, and the value is a tuple where the first element
-/// is a UMI (as a byte array), and the second element is its count.
-///
-/// # Returns
-///
-/// * A HashSet containing the representative UMIs for each connected component in the graph. 
-/// Each UMI is represented as a byte array (`Vec<u8>`).
-///
-/// # Example
-///
-/// ```rust
-/// // assume `graph` and `node_attributes` are predefined
-/// let representative_umis = get_representative_umis_wcc(&graph, &node_attributes);
-/// ```
-pub fn get_representative_umis_wcc(graph: &Graph<Vec<u8>, i32>
-                                , node_attributes: &HashMap<NodeIndex
-                                , (Vec<u8>, i32)>) -> HashSet<Vec<u8>> {
-    // Initialize an empty HashSet to store the representative UMIs.
-    let mut repr_umis: HashSet<Vec<u8>> = HashSet::new();
-
-    // Compute the weakly connected components (WCCs) of the directed graph
-    let component_indices = connected_components(&graph);
-
-    // Construct a map from component index to a vector of node indices for that component
-    let mut components: HashMap<usize, Vec<NodeIndex>> = HashMap::new();
-    for (node_index, component_index) in (1..component_indices).enumerate() {
-        components.entry(component_index).or_default().push(NodeIndex::new(node_index));
-    }
-
-    // Convert the map values to a vector
-    let wccs: Vec<Vec<NodeIndex>> = components.into_iter().map(|(_, nodes)| nodes).collect();
-
-    // Iterate over each WCC.
-    for component in wccs {
-        // Initialize variables to keep track of the UMI with the maximum count in the current WCC.
-        let mut max_count:i32 = 0;
-        let mut max_umi: Vec<u8> = Vec::new();
-
-        // Iterate over each node in the WCC.
-        for node in component {
-            // Get the UMI and its count for the current node.
-            let cur_umi: &(Vec<u8>, i32) = node_attributes.get(&node).unwrap();
-
-            // If the current UMI count is greater than the max count seen so far, update max_count and max_umi.
-            if cur_umi.1 > max_count {
-                max_count = cur_umi.1;
-                max_umi = cur_umi.0.clone();
-            }
-        }
-
-        // Insert the UMI with the maximum count in the current WCC into the set of representative UMIs.
-        repr_umis.insert(max_umi);
-    }
-
-    // Return the set of representative UMIs.
-    repr_umis
-}
-
 /// Process a BAM file and error correct UMIs
 ///
 /// This function reads a BAM file, extracts UMIs from read names, and stores their counts in a dictionary.
@@ -356,7 +284,7 @@ pub fn get_representative_umis_wcc(graph: &Graph<Vec<u8>, i32>
 /// ```rust
 /// let corrected_umis = find_true_umis("sample1.UMI.bam");
 /// ```
-pub fn find_true_umis(input_bam_file: &str, search_algo: &str) -> Result<HashSet<Vec<u8>>, io::Error> {
+pub fn find_true_umis(input_bam_file: &str) -> Result<HashSet<Vec<u8>>, io::Error> {
     let mut umi_counts: HashMap<Vec<u8>, i32> = HashMap::new();
     let bam_reader = bam::BamReader::from_path(input_bam_file, 11).unwrap();
 
@@ -377,11 +305,7 @@ pub fn find_true_umis(input_bam_file: &str, search_algo: &str) -> Result<HashSet
     let (graph, node_attributes) = umi_graph(&umi_counts, 1);
 
     // Find the representative UMIs
-    let corrected_umis = match search_algo {
-        "WCC" => get_representative_umis_wcc(&graph, &node_attributes),
-        "BFS" => get_representative_umis_bfs(&graph, &node_attributes),
-        _ => get_representative_umis_wcc(&graph, &node_attributes),
-    };
+    let corrected_umis = get_representative_umis_bfs(&graph, &node_attributes);
 
     Ok(corrected_umis)
 }

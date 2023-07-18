@@ -58,8 +58,7 @@ pub fn rna_discovery_calculation(
                                 sample_names: Vec<String>,
                                 reference: &str,
                                 num_threads: u8,
-                                include_unaligned_reads: bool,
-                                search_algo: &str
+                                include_unaligned_reads: bool
                             ) -> Result<Vec<String>, io::Error> {
     let num_of_fastqs = trimmed_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
@@ -111,7 +110,7 @@ pub fn rna_discovery_calculation(
                 .expect("Failed to run samtools to convert SAM to BAM");
 
             // Error correct UMIs in sample bam file
-            let repr_umis: HashSet<Vec<u8>> = find_true_umis(&format!("{}.UMI.bam", sample_name), search_algo)?;
+            let repr_umis: HashSet<Vec<u8>> = find_true_umis(&format!("{}.UMI.bam", sample_name))?;
 
             // Deduplicate mapped bam file
             let deduplication_result = deduplicate_bam(&format!("{}.UMI.bam", sample_name)
