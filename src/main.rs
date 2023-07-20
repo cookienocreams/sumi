@@ -39,6 +39,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::error::Error;
 use niffler::get_reader;
 use csv::{Reader as csv_reader, Writer as csv_writer};
+use bio::alignment::distance::simd::hamming;
 
 // Define the regex to extract index information and UMI and index information
 lazy_static! {
@@ -194,22 +195,24 @@ fn main() -> io::Result<()> {
                 .short('l')
                 .long("sample-to-lowest")
                 .takes_value(false)
-                .help("Subsample all fastqs in the current directory to the fastq with the lowest number of reads.")
+                .help("Subsample all fastqs in the current directory to the fastq with \
+                the lowest number of reads.")
         )
         .arg(
             Arg::with_name("qiagen")
                 .short('q')
                 .long("qiagen")
                 .takes_value(false)
-                .help("Set flag if Qiagen libraries are being analyzed.")
+                .help("Set flag if Qiagen libraries are being analyzed. Be sure to specify \
+                the correct minimum length.")
         )
         .arg(
             Arg::with_name("thresholds")
                 .short('T')
                 .long("thresholds")
                 .multiple(true) 
-                .help("The thresholds for RNA species counting. Multiple values must be separated by a space. \
-                Default threshold values set to 1 3 5 10.")
+                .help("The thresholds for RNA species counting. Multiple values must be \
+                separated by a space. Default threshold values set to 1 3 5 10.")
                 .value_name("THRESHOLDS"),
         )
         .arg(

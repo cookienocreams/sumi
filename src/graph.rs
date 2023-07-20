@@ -5,6 +5,7 @@ use crate::NodeIndex;
 use crate::UMI_REGEX;
 use crate::Error;
 use crate::bam::RecordWriter;
+use crate::hamming;
 use petgraph::visit::Bfs;
 use petgraph::visit::VisitMap;
 use petgraph::visit::Visitable;
@@ -12,42 +13,6 @@ use petgraph::visit::Visitable;
 // Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from 
 // NodeIndex to a tuple of UMI and its count.
 type UmiGraph = (Graph<Vec<u8>, i32>, HashMap<NodeIndex, (Vec<u8>, i32)>);
-
-/// Calculate the Hamming distance between two byte arrays.
-///
-/// This function takes two UMIs (Unique Molecular Identifiers) represented as byte arrays
-/// and returns their Hamming distance as an i32. The Hamming distance between two arrays
-/// of equal length is the number of positions at which the corresponding elements are different.
-/// If the arrays are of unequal length, the function zips the elements together up to the length 
-/// of the shorter array.
-///
-/// # Arguments
-///
-/// * `a` - A UMI represented as a byte array
-/// * `b` - A UMI represented as a byte array
-///
-/// # Returns
-///
-/// * An i32 representing the Hamming distance between the input byte arrays
-///
-/// # Example
-///
-/// ```rust
-/// let dist = hamming_distance(b"ATTGGATGGACC", b"ATAGGAGGGAGC");
-/// assert_eq!(dist, 3);
-/// ```
-///
-/// # Panics
-///
-/// This function does not handle UMIs of different lengths. If the lengths of the
-/// input UMIs are different, only the elements up to the length of the shorter
-/// byte array are considered.
-pub fn hamming_distance(a: &Vec<u8>, b: &Vec<u8>) -> i32 {
-    a.iter()
-        .zip(b.iter())
-        .map(|(&a, &b)| if a != b { 1 } else { 0 })
-        .sum()
-}
 
 /// Construct a substring index from a slice of UMIs.
 ///
@@ -167,7 +132,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32) -> UmiG
         for j in potential_neighbors {
             // Ensure that we don't compute the distance between a UMI and itself
             if i != j {
-                let hamming_dist = hamming_distance(&umis[i], &umis[j]);
+                let hamming_dist: i32 = hamming(&umis[i], &umis[j]).try_into().unwrap();
 
                 // If hamming distance is within max edits, consider for edge addition
                 if hamming_dist <= max_edits {
