@@ -3,6 +3,7 @@ use crate::File;
 use crate::BufReader;
 use std::io::BufRead;
 use std::io::Write;
+
 /// Function to find RNAs that are common in all given samples, and their counts, and RPM.
 ///
 /// # Arguments

@@ -1,5 +1,6 @@
 mod sample;
 mod trim_adapters;
+mod extract_umis;
 mod graph;
 mod rna_counts;
 mod thresholds;
@@ -8,6 +9,8 @@ mod common;
 
 use crate::sample::subsample_fastqs;
 use crate::trim_adapters::trim_adapters;
+use crate::extract_umis::extract_umis;
+use crate::extract_umis::extract_umis_qiagen;
 use crate::rna_counts::rna_discovery_calculation;
 use crate::lengths::calculate_read_length_distribution;
 use crate::thresholds::threshold_count;
@@ -42,6 +45,7 @@ lazy_static! {
     static ref SINGLE_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+").unwrap();
     static ref DUAL_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+\+[ATCGN]+").unwrap();
     static ref UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
+    static ref UMI_REGEX_QIAGEN: Regex = Regex::new(r"AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG").unwrap();
 }
 
 /// List all files in the current directory that contain the target string.
@@ -113,6 +117,7 @@ fn remove_intermediate_files() {
         ".unprocessed.cut",
         "short.fastq",
         "_subsample",
+        "processed",
         "_threshold_count_sum.csv",
         "_common_RNAs"
     ]
@@ -192,6 +197,13 @@ fn main() -> io::Result<()> {
                 .help("Subsample all fastqs in the current directory to the fastq with the lowest number of reads.")
         )
         .arg(
+            Arg::with_name("qiagen")
+                .short('q')
+                .long("qiagen")
+                .takes_value(false)
+                .help("Set flag if Qiagen libraries are being analyzed.")
+        )
+        .arg(
             Arg::with_name("thresholds")
                 .short('T')
                 .long("thresholds")
@@ -212,7 +224,16 @@ fn main() -> io::Result<()> {
         )
         .get_matches();
 
-    let library_type = "UMI";
+    // Check if Qiagen libraries are being used
+    let is_qiagen = matches.is_present("qiagen");
+
+    // Set the library type
+    let library_type: &str;
+    if is_qiagen {
+        library_type = "Qiagen"
+    } else {
+        library_type = "UMI"
+    }
 
     // Gather all the input parameters
     let keep_intermediates: bool = matches.is_present("keep_intermediate_files");
@@ -274,7 +295,6 @@ fn main() -> io::Result<()> {
     // Subsample fastqs if desired
     let subsample_to_lowest = matches.is_present("subsample_to_lowest");
 
-    // Subsample fastqs if desired
     if subsample_to_lowest {
         // Subsample to the smallest fastq file
         let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), None);
@@ -292,11 +312,11 @@ fn main() -> io::Result<()> {
     } else {
         // No subsampling
         trimmed_fastqs = trim_adapters(fastq_files.clone(), sample_library_type.clone(), minimum_length);
-    }  
+    }
 
     // Calculate number of RNA in each sample 
     // Error correct UMIs in sample bam file
-    let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs, sample_library_type.clone()
+    let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs
                                                                 , sample_names.clone()
                                                                 , reference, num_threads
                                                                 , include_unaligned_reads) 

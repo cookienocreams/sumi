@@ -18,7 +18,7 @@ use std::io;
 // Define a custom error type that can represent both io::Error and bio::io::fastq::Error
 // Can be used to determine if an error occurred when reading the input or the fastq file
 #[derive(Error, Debug)]
-enum MyError {
+pub enum MyError {
     #[error("I/O error")]
     Io(#[from] io::Error),
     #[error("FASTQ error")]
@@ -54,7 +54,6 @@ enum MyError {
 /// ```
 pub fn rna_discovery_calculation(
                                 trimmed_fastqs: Vec<String>, 
-                                library_type: HashMap<String, String>, 
                                 sample_names: Vec<String>,
                                 reference: &str,
                                 num_threads: u8,
@@ -79,65 +78,64 @@ pub fn rna_discovery_calculation(
     };
 
     for (fastq_file, sample_name) in trimmed_fastqs.iter().zip(sample_names.iter()) {
-        if library_type[sample_name] == "UMI" {
-            // Align to bowtie2 reference
-            // Make mapped SAM file with header for faster analysis
-            let _ = Command::new("bowtie2")
-                .args(&["--norc"
-                        , "--threads"
-                        , &num_threads.to_string()
-                        , unaligned
-                        , "-x"
-                        , reference
-                        , "-U"
-                        , fastq_file
-                        , "-S"
-                        , &format!("{}.UMI.sam", sample_name)]
-                    )
-                .output()
-                .expect("Failed to run bowtie2");
+        // Align to bowtie2 reference
+        // Make mapped SAM file with header for faster analysis
+        let _ = Command::new("bowtie2")
+            .args(&["--norc"
+                    , "--threads"
+                    , &num_threads.to_string()
+                    , unaligned
+                    , "-x"
+                    , reference
+                    , "-U"
+                    , fastq_file
+                    , "-S"
+                    , &format!("{}.UMI.sam", sample_name)]
+                )
+            .output()
+            .expect("Failed to run bowtie2");
 
-            // Can use SAM file for deduplication, but a BAM file uses less memory
-            let _ = Command::new("samtools")
-                .args(&["view"
-                        , &format!("-@ {}", &num_threads).to_string()
-                        , "--with-header"
-                        , "-o"
-                        , &format!("{}.UMI.bam", sample_name)
-                        , &format!("{}.UMI.sam", sample_name)]
-                    )
-                .output()
-                .expect("Failed to run samtools to convert SAM to BAM");
+        // Can use SAM file for deduplication, but a BAM file uses less memory
+        let _ = Command::new("samtools")
+            .args(&["view"
+                    , &format!("-@ {}", &num_threads).to_string()
+                    , "--with-header"
+                    , "-o"
+                    , &format!("{}.UMI.bam", sample_name)
+                    , &format!("{}.UMI.sam", sample_name)]
+                )
+            .output()
+            .expect("Failed to run samtools to convert SAM to BAM");
 
-            // Error correct UMIs in sample bam file
-            let repr_umis: HashSet<Vec<u8>> = find_true_umis(&format!("{}.UMI.bam", sample_name))?;
+        // Error correct UMIs in sample bam file
+        let repr_umis: HashSet<Vec<u8>> = find_true_umis(&format!("{}.UMI.bam", sample_name))?;
 
-            // Deduplicate mapped bam file
-            let deduplication_result = deduplicate_bam(&format!("{}.UMI.bam", sample_name)
-                                                                                    , sample_name
-                                                                                    , repr_umis);
+        // Deduplicate mapped bam file
+        let deduplication_result = deduplicate_bam(&format!("{}.UMI.bam", sample_name)
+                                                                                , sample_name
+                                                                                , repr_umis);
 
-            // Check the result
-            match deduplication_result {
-                Ok(_) => (),
-                Err(e) => eprintln!("An error occurred while deduplicating the sample {}: {}", sample_name, e),
-            }
-
-            // Convert deduplicated bam file to a sam file
-            let _ = Command::new("samtools")
-                .args(&["view"
-                        , &format!("-@ {}", &num_threads).to_string()
-                        , "--with-header"
-                        , "-o"
-                        , &format!("{}.{}.sam", sample_name, reference_name)
-                        , &format!("{}.dedup.bam", sample_name)]
-                    )
-                .output()
-                .expect("Failed to run samtools to convert BAM to SAM");
-
-            // Generate data for the specific RNAs captured
-            let _  = generate_rna_counts(&format!("{}.{}.sam", sample_name, reference_name), sample_name, reference_name);
+        // Check the result
+        match deduplication_result {
+            Ok(_) => (),
+            Err(e) => eprintln!("An error occurred while deduplicating the sample {}: {}", sample_name, e),
         }
+
+        // Convert deduplicated bam file to a sam file
+        let _ = Command::new("samtools")
+            .args(&["view"
+                    , &format!("-@ {}", &num_threads).to_string()
+                    , "--with-header"
+                    , "-o"
+                    , &format!("{}.{}.sam", sample_name, reference_name)
+                    , &format!("{}.dedup.bam", sample_name)]
+                )
+            .output()
+            .expect("Failed to run samtools to convert BAM to SAM");
+
+        // Generate data for the specific RNAs captured
+        let _  = generate_rna_counts(&format!("{}.{}.sam", sample_name, reference_name), sample_name, reference_name);
+
         progress_br.inc(1);
     }
 
