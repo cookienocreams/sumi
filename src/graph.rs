@@ -132,7 +132,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32) -> UmiG
         for j in potential_neighbors {
             // Ensure that we don't compute the distance between a UMI and itself
             if i != j {
-                let hamming_dist: i32 = hamming(&umis[i], &umis[j]).try_into().unwrap();
+                let hamming_dist= hamming(&umis[i], &umis[j]) as i32;
 
                 // If hamming distance is within max edits, consider for edge addition
                 if hamming_dist <= max_edits {
