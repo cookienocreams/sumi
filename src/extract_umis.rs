@@ -5,7 +5,6 @@ use std::fs::File;
 use crate::SINGLE_INDEX_REGEX;
 use crate::DUAL_INDEX_REGEX;
 use crate::UMI_REGEX_QIAGEN;
-use crate::rna_counts::MyError;
 
 /// Extract Unique Molecular Identifiers (UMIs) from a given fastq file and write the 
 /// UMI-trimmed sequences to a new fastq file. The UMIs are assumed to be the first 12 characters
@@ -96,65 +95,58 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str) -> std::io::Result<
 /// where the UMI is the 12 bases following the adapter sequence "AACTGTAGGCACCATCAAT" and before 
 /// the sequence "AGATCGGAAG". This is different from the previous version where UMIs were 
 /// expected to be the first 12 characters of the sequence.
-pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator: &str) -> Result<(), MyError> {
-    let mut writer = Writer::to_file(format!("{}.processed.fastq", sample_name))?;
-
+pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator: &str) -> std::io::Result<()> {
+    
     let input_file = File::open(input_fastq)?;
     let reader = Reader::new(MultiGzDecoder::new(BufReader::new(input_file)));
 
-    // Go through each sequence in the FASTQ file
+    let mut writer = Writer::new(File::create(format!("{}.processed.fastq", sample_name))?);
+
     for record_result in reader.records() {
-        // Check if the record is as expected
         let record = match record_result {
-            Ok(ref r) => r,
-            Err(e) => {
-                println!("Error reading record: {}", e);
+            Ok(record) => record,
+            Err(err) => {
+                eprintln!("Error reading record: {}", err);
                 continue;
-            }
+            },
         };
 
-        // Capture read sequence as a string
-        let read_sequence = String::from_utf8(record.seq().to_vec()).unwrap();
-        let _read_description = record.desc().unwrap_or_default();
+        let read_sequence = match String::from_utf8(record.seq().to_vec()) {
+            Ok(s) => s,
+            Err(err) => {
+                eprintln!("Error decoding sequence as UTF-8: {}", err);
+                continue;
+            },
+        };
+        
+        if let Some(captures) = UMI_REGEX_QIAGEN.captures(&read_sequence) {
+            if let Some(umi_match) = captures.get(1) {
+                let umi_str = umi_match.as_str();
+                let umi_start = umi_match.start();
 
-        // Capture UMI appended to the 3' adapter using regex
-        if let Some(umi_match) = UMI_REGEX_QIAGEN.captures(&read_sequence) {
-            let umi = umi_match[1].to_string();
-            let umi_start = umi_match.get(0).unwrap().start();
-            let umi_end = umi_match.get(0).unwrap().end();
+                if let Some(index_match) = DUAL_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
+                    let indexes = index_match.as_str();
+                    let read_info_with_umi = format!("{}{}{} {}", record.id(), umi_delineator, umi_str, indexes);
 
-            // Capture index information
-            let indexes = match DUAL_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
-                Some(matched) => matched.as_str(),
-                None => match SINGLE_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
-                    Some(matched) => matched.as_str(),
-                    None => panic!("Could not find index"),  
-                },
-            };
+                    if umi_start <= read_sequence.len() && umi_start <= record.qual().len() {
+                        let umi_trimmed_sequence = format!("{}", &read_sequence[..umi_start]);
+                        let trimmed_quality = &record.qual()[..umi_start];
 
-            // If a UMI was found, add it to the sequence description after an underscore
-            let read_info_with_umi = format!("{}{}{} {}", record.id(), umi_delineator, umi, indexes);
+                        let new_record = Record::with_attrs(
+                            &read_info_with_umi, 
+                            None, 
+                            umi_trimmed_sequence.as_bytes(), 
+                            trimmed_quality,
+                        );
 
-            // Remove the UMI sequence from the read sequence and quality
-            let umi_trimmed_sequence = format!("{}{}", read_sequence[0..umi_start].to_string()
-                                                             , &read_sequence[umi_end..].to_string()
-                                                            );
-            let mut trimmed_quality = record.qual()[0..umi_start].to_vec();
-            trimmed_quality.extend_from_slice(&record.qual()[umi_end..]);
-
-            // Create a new fastq record with the UMI sequence moved
-            let new_record = Record::with_attrs(
-                &read_info_with_umi,
-                None,
-                umi_trimmed_sequence.as_bytes(),
-                &trimmed_quality,
-            );
-
-            // Write the sequence to the output file
-            writer.write_record(&new_record)?;
-        } else {
-            continue;
+                        if let Err(err) = writer.write_record(&new_record) {
+                            eprintln!("Error writing record: {}", err);
+                        }
+                    }
+                }
+            }
         }
-    } 
+    }
+    
     Ok(())
 }

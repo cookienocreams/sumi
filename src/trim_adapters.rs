@@ -102,14 +102,14 @@ pub fn trim_adapters(fastqs: Vec<String>
             }
             "Qiagen" => {
                 let adapter = "AACTGTAGGCACCATCAAT";
-                let output_file_name = format!("{}.cut.fastq", sample_name);
                 if let Some(extract) = Some(extract_umis_qiagen) {
                     let args = Some((fastq_file, sample_name, "_")).unwrap();
                     if let Err(e) = extract(args.0, args.1, args.2) {
                         eprintln!("Error when extracting UMIs: {:?}", e);
                     }
                 }
-                let fastq_file = format!("{}.processed.fastq", sample_name);
+                let fastq = format!("{}.processed.fastq", sample_name);
+                let output_file_name = format!("{}.cut.fastq", sample_name);
 
                 cutadapt_args.extend([
                     adapter
@@ -119,7 +119,7 @@ pub fn trim_adapters(fastqs: Vec<String>
                     , &min_length_string
                     , "--too-short-output"
                     , &too_short_output
-                    , &fastq_file
+                    , &fastq
                 ]);
 
                 let output = Command::new("cutadapt")
