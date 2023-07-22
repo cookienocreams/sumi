@@ -128,7 +128,7 @@ fn get_read_q_score(line: &str, q_score_list: &mut Vec<f64>) {
 /// # Examples
 ///
 /// ```
-/// let avg_quality = average_read_quality("my_file.fastq")?;
+/// let avg_quality = average_read_quality("sample.fastq")?;
 /// println!("The average quality score is {}.", avg_quality);
 /// ```
 fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Error>> {
@@ -139,13 +139,13 @@ fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Er
 
     let mut lines = BufReader::new(&mut reader).lines();
     while let Some(line) = lines.next() {
-        // skip the line if it's an error
+        // Skip the line if there is an error
         let line = match line {
             Ok(line) => line,
             Err(_) => continue,
         };
 
-        // we only want to process every 4th line, which are the quality scores
+        // Only want to process every 4th line, which are the quality scores
         if line.starts_with('@') {
             lines.next();
             lines.next();
@@ -424,13 +424,14 @@ fn main() -> io::Result<()> {
     let mut minimum_length = *matches.get_one::<u8>("minimum_length").unwrap();
     let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
 
-    minimum_length = if minimum_length != 16 && !is_qiagen { 
-        minimum_length + umi_length 
-    } else if minimum_length == 16 && !is_qiagen {
-        16 + umi_length
-    } else {
-        16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
-    };
+    minimum_length = 
+        if minimum_length != 16 && !is_qiagen { 
+            minimum_length + umi_length 
+        } else if minimum_length == 16 && !is_qiagen {
+            16 + umi_length
+        } else {
+            16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
+        };
 
     // Get fastq files
     let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
@@ -465,7 +466,7 @@ fn main() -> io::Result<()> {
         sample_library_type.insert(sample_name.clone(), library_type.to_string());
     }
 
-    // Check if Qiagen libraries are being used
+    // Check quality scores if desired
     let analyze_quality_scores = matches.is_present("quality_score");
     if analyze_quality_scores {
         match average_quality_scores(&fastq_files) {
