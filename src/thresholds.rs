@@ -49,7 +49,7 @@ pub fn threshold_count(file_names: Vec<String>, thresholds: Vec<usize>, sample_n
         
     progress_br.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{eta_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );

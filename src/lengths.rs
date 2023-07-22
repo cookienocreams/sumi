@@ -33,7 +33,7 @@ pub fn calculate_read_length_distribution(sam_files: Vec<String>) {
     
     progress_br.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{eta_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );

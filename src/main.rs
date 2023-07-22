@@ -40,12 +40,13 @@ use std::error::Error;
 use niffler::get_reader;
 use csv::{Reader as csv_reader, Writer as csv_writer};
 use bio::alignment::distance::simd::hamming;
+use std::io::BufRead;
 
 // Define the regex to extract index information and UMI and index information
 lazy_static! {
     static ref SINGLE_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+").unwrap();
     static ref DUAL_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+\+[ATCGN]+").unwrap();
-    static ref UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
+    static ref READ_NAME_UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
     static ref UMI_REGEX_QIAGEN: Regex = Regex::new(r"AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG").unwrap();
 }
 
@@ -94,6 +95,120 @@ fn is_gzipped(filename: &str) -> io::Result<bool> {
     let mut buffer = [0; 2];  // Buffer to store the first two bytes
     file.read(&mut buffer)?;
     Ok(buffer == [0x1f, 0x8b])
+}
+
+/// Calcualte the mean of an input vector
+fn mean(numbers: &Vec<f64>) -> f64 {
+    let sum: f64 = numbers.iter().sum();
+    sum as f64 / numbers.len() as f64
+}
+
+/// Calculate the quality score for a given sequence
+fn get_read_q_score(line: &str, q_score_list: &mut Vec<f64>) {
+    let mut unicode_numbers: Vec<f64> = Vec::new();
+    for character in line.chars() {
+        unicode_numbers.push((character as u32).into());
+    }
+
+    let q_score = mean(&unicode_numbers) - 33.0;
+    q_score_list.push(q_score);
+}
+
+/// Calculate the average quality score of a FASTQ file.
+///
+/// # Arguments
+///
+/// * `input_fastq` - A string slice that holds the name of the FASTQ file to read.
+///
+/// # Returns
+///
+/// This function will return the average quality score of the input FASTQ file. If an
+/// error occurs while reading the file, an error will be returned instead.
+///
+/// # Examples
+///
+/// ```
+/// let avg_quality = average_read_quality("my_file.fastq")?;
+/// println!("The average quality score is {}.", avg_quality);
+/// ```
+fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Error>> {
+    let reader = File::open(input_fastq)?;
+    let (mut reader, _compression) = get_reader(Box::new(reader))?;
+
+    let mut q_score_list = Vec::new();
+
+    let mut lines = BufReader::new(&mut reader).lines();
+    while let Some(line) = lines.next() {
+        // skip the line if it's an error
+        let line = match line {
+            Ok(line) => line,
+            Err(_) => continue,
+        };
+
+        // we only want to process every 4th line, which are the quality scores
+        if line.starts_with('@') {
+            lines.next();
+            lines.next();
+            if let Some(quality_line) = lines.next() {
+                if let Ok(quality_line) = quality_line {
+                    get_read_q_score(&quality_line, &mut q_score_list);
+                }
+            }
+        }
+    }
+
+    Ok(mean(&q_score_list))
+}
+
+/// Calculate the average quality scores for a list of FASTQ files.
+///
+/// # Arguments
+///
+/// * `fastq_files` - A slice containing the names of the FASTQ files to process.
+///
+/// # Returns
+///
+/// This function will return a vector of the average quality scores of the input FASTQ 
+/// files. If an error occurs while reading any of the files, an error will be returned instead.
+///
+/// # Examples
+///
+/// ```
+/// let avg_qualities = average_quality_scores(&["file1.fastq", "file2.fastq", "file3.fastq"])?;
+/// println!("The average quality scores are: {:?}", avg_qualities);
+/// ```
+fn average_quality_scores(fastq_files: &Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+    let num_of_fastqs = fastq_files.len() as u64;
+    let progress_br = ProgressBar::new(num_of_fastqs);
+    
+    progress_br.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+                .expect("Progress bar error")
+            .progress_chars("#>-"),
+    );
+    progress_br.set_message("Calculating quality scores...");
+
+    let mut quality_map = HashMap::new();
+    for file in fastq_files {
+        let avg_quality = average_read_quality(file)?;
+        quality_map.insert(file.clone(), avg_quality);
+
+        progress_br.inc(1);
+    }
+
+    let mut writer = csv_writer::from_path("q_scores.csv")?;
+    writer.write_record(&["sample", "quality score"])?;
+
+    for (sample, score) in &quality_map {
+        writer.write_record(&[sample, &score.to_string()])?;
+    }
+
+    writer.flush()?;
+
+    progress_br.finish_with_message("Finished calculating quality scores");
+
+    Ok(())
 }
 
 /// Remove all intermediate files.
@@ -149,11 +264,10 @@ fn main() -> io::Result<()> {
                 .short('m')
                 .long("min-length")
                 .help("The miniumum length cutoff for cutadapt. Fragments shorter than this length \
-                will be discarded after adapter trimming. Default is 28 bp, i.e., 16 bp \
-                minimum length + 12 bp UMI")
+                will be discarded after adapter trimming.")
                 .value_name("MINIMUM_LENGTH")
                 .value_parser(clap::value_parser!(u8).range(0..75))
-                .default_value("28"),
+                .default_value("16"),
         )
         .arg(
             Arg::with_name("num_threads")
@@ -203,8 +317,14 @@ fn main() -> io::Result<()> {
                 .short('q')
                 .long("qiagen")
                 .takes_value(false)
-                .help("Set flag if Qiagen libraries are being analyzed. Be sure to specify \
-                the correct minimum length.")
+                .help("Set flag if Qiagen libraries are being analyzed.")
+        )
+        .arg(
+            Arg::with_name("quality_score")
+                .short('Q')
+                .long("quality_score")
+                .takes_value(false)
+                .help("Set flag to output file containing each fastq's average read quality.")
         )
         .arg(
             Arg::with_name("thresholds")
@@ -225,6 +345,22 @@ fn main() -> io::Result<()> {
                  outside the program if used with the '--keep' flag. Note this can significantly \
                  increase run time.")
         )
+        .arg(
+            Arg::with_name("umi_regex")
+            .short('p')
+            .long("umi_regex")
+            .value_name("UMI_REGEX")
+            .help("The regular expression pattern to capture each UMI. This pattern should contain capture \
+                groups for the UMI bases and can include any intermediate bases.\n\n\
+                For example, to capture a UMI of 10 bases, use \"(.{10})\". If the UMI is split by specific \
+                bases, include those bases in the pattern as well. For example, if a 12-base UMI is split \
+                into three groups of 4 bases each by the bases 'CCA' and 'TCA', use \"(.{4})CCA(.{4})TCA(.{4})\".\n\n\
+                Note: This is currently limited to UMIs on the 5' side of each sequence \
+                unless analyzing Qiagen libraries, see '--qiagen' flag, and the double \
+                quotes are required.")
+            .takes_value(true)
+            .default_value("(.{12})"),
+        )
         .get_matches();
 
     // Check if Qiagen libraries are being used
@@ -240,15 +376,23 @@ fn main() -> io::Result<()> {
 
     // Gather all the input parameters
     let keep_intermediates: bool = matches.is_present("keep_intermediate_files");
-    let minimum_length: u8 = *matches.get_one("minimum_length").unwrap();
     let num_threads: u8 = *matches.get_one("num_threads").unwrap();
     let reference: &str = matches.value_of("alignment_reference").unwrap();
     let reference_name: &str = Path::new(reference).file_name().unwrap().to_str().unwrap();
     let include_unaligned_reads = matches.is_present("include_unaligned_reads");
+    let input_regex = matches.value_of("umi_regex").unwrap();
+
+    let umi_regex_result = Regex::new(matches.value_of("umi_regex").unwrap());
+    let umi_regex = match umi_regex_result {
+        Ok(regex) => regex,
+        Err(_) => panic!("Unexpected umi regex pattern")
+    };
+    
     let thresholds: Vec<usize> = match matches.values_of("thresholds") {
         Some(values) => values.map(|x| x.parse::<usize>().expect("Threshold must be a number.")).collect(),
         None => vec![1, 3, 5, 10],
     };
+
     let subsample: Option<u32> = match matches.value_of("subsample_fastqs") {
         Some(count) => match count.parse::<u32>() {
             // The flag was present and the value was given and is valid
@@ -258,7 +402,36 @@ fn main() -> io::Result<()> {
         },
         None => None, // The flag was not present
     };
-    
+
+    // Set regex patterns to set minimum length accounting for UMI length
+    let num_capture_regex = Regex::new(r"\.\{(\d+)\}").unwrap();
+    let base_capture_regex = Regex::new(r"[ATCG]+").unwrap();
+    let mut umi_sum: u8 = 0;
+        
+    // Get length of UMI by combining the numbers in the caputure groups in the regex pattern
+    for captures in num_capture_regex.captures_iter(input_regex) {
+        if let Ok(num) = captures[1].parse::<u8>() {
+            umi_sum += num;
+        }
+    }
+
+    // Get length of intermediate bases between UMI groups if present
+    for capture in base_capture_regex.find_iter(input_regex) {
+        umi_sum += capture.as_str().len() as u8;
+    }
+
+    // Set the minimum fragment length taking UMI length into account
+    let mut minimum_length = *matches.get_one::<u8>("minimum_length").unwrap();
+    let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
+
+    minimum_length = if minimum_length != 16 && !is_qiagen { 
+        minimum_length + umi_length 
+    } else if minimum_length == 16 && !is_qiagen {
+        16 + umi_length
+    } else {
+        16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
+    };
+
     // Get fastq files
     let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
     if fastq_files.is_empty() {
@@ -292,6 +465,15 @@ fn main() -> io::Result<()> {
         sample_library_type.insert(sample_name.clone(), library_type.to_string());
     }
 
+    // Check if Qiagen libraries are being used
+    let analyze_quality_scores = matches.is_present("quality_score");
+    if analyze_quality_scores {
+        match average_quality_scores(&fastq_files) {
+            Ok(_) => (),
+            Err(err) => println!("Error: {:?}", err),
+        }
+    };
+
     // Initialize trimmed fastqs vector
     let mut trimmed_fastqs: Vec<String> = vec![];
 
@@ -304,17 +486,17 @@ fn main() -> io::Result<()> {
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
-        trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length);
+        trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, &umi_regex);
     } else if let Some(n_reads) = subsample {
         // Subsample to the specified number of reads
         let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), Some(n_reads as usize));
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
-        trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length);
+        trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, &umi_regex);
     } else {
         // No subsampling
-        trimmed_fastqs = trim_adapters(fastq_files.clone(), sample_library_type.clone(), minimum_length);
+        trimmed_fastqs = trim_adapters(fastq_files.clone(), sample_library_type.clone(), minimum_length, &umi_regex);
     }
 
     // Calculate number of RNA in each sample 
@@ -323,7 +505,7 @@ fn main() -> io::Result<()> {
                                                                 , sample_names.clone()
                                                                 , reference, num_threads
                                                                 , include_unaligned_reads) 
-                                                                else {panic!("An error occurred")};
+                                                                else {panic!("An error occurred during the RNA counting calculation")};
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));
 

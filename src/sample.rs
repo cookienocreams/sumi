@@ -66,7 +66,7 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
     
     progress_br.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{eta_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );
@@ -168,7 +168,7 @@ pub fn subsample_fastqs(input_fastqs: Vec<String>, sample_names: Vec<String>, ta
     
     progress_br.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{eta_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );

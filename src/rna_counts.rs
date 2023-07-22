@@ -25,6 +25,49 @@ pub enum MyError {
     Fastq(#[from] bio::io::fastq::Error),
 }
 
+/// Checks a SAM file to determine if it contains alignment data.
+///
+/// The function reads through the SAM file line by line, looking for any line that does 
+/// not start with '@', which would indicate it contains alignment data. If such a line 
+/// is found, the function will return `Ok(())`, signaling the file does contain alignments.
+///
+/// If the end of the file is reached without encountering any alignment data (i.e., all 
+/// lines start with '@'), an error is returned with the message "SAM file is empty".
+///
+/// # Arguments
+/// * `sam_file` - A string slice that holds the path to the SAM file.
+///
+/// # Returns
+/// * `Ok(())` if the SAM file contains alignment data.
+/// * `Err(io::Error)` if the SAM file does not contain alignment data or if there was an 
+/// error reading the file.
+///
+/// # Errors
+/// This function will return an error if there was an issue reading the file or if the 
+/// file does not contain alignment data.
+///
+/// # Example
+/// ```no_run
+/// let result = is_sam_file_empty("/path/to/your/file.sam");
+/// match result {
+///     Ok(_) => println!("The SAM file contains alignments."),
+///     Err(e) => eprintln!("An error occurred: {}", e),
+/// }
+/// ```
+pub fn is_sam_file_empty(sam_file: &str) -> Result<(), io::Error> {
+    let file = File::open(sam_file)?;
+    let reader = BufReader::new(file);
+
+    for line in reader.lines() {
+        let line = line?;
+        if !line.starts_with('@') {
+            return Ok(());
+        }
+    }
+
+    Err(io::Error::new(io::ErrorKind::InvalidData, "SAM file is empty"))
+}
+
 /// Perform alignment of trimmed fastq files to the target RNA bowtie2 reference to calculate
 /// the number of unique RNA present in each sample. UMI error correction and deduplication
 /// is also done. Only aligned reads are output to SAM file in order to speed up UMI deduplication.
@@ -64,7 +107,7 @@ pub fn rna_discovery_calculation(
     
     progress_br.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{eta_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );
@@ -94,6 +137,22 @@ pub fn rna_discovery_calculation(
                 )
             .output()
             .expect("Failed to run bowtie2");
+
+        let check_result = is_sam_file_empty(&format!("{}.UMI.sam", sample_name));
+
+        // Skip analysis of sample if no alignments are found
+        match check_result {
+            Ok(_) => {
+                // Continue processing this sample
+            }
+            Err(e) => {
+                println!("Error while checking {}: {}. Please check input samples and parameters."
+                        , &format!("{}.UMI.sam", sample_name)
+                        , e);
+                // Skip this sample
+                continue;
+            }
+        }
 
         // Can use SAM file for deduplication, but a BAM file uses less memory
         let _ = Command::new("samtools")
@@ -139,9 +198,14 @@ pub fn rna_discovery_calculation(
         progress_br.inc(1);
     }
 
-    progress_br.finish_with_message(format!("Finished counting {}", reference_name));
-
     let sam_files: Vec<String> = capture_target_files(&format!(".{}.sam", reference_name));
+
+    // Stop analysis if all samples lack alignment data 
+    if sam_files.len() == 0 {
+        panic!("No deduplicated sam files found. Analysis aborted.");
+    }
+
+    progress_br.finish_with_message(format!("Finished counting {}", reference_name));
 
     Ok(sam_files)
 }

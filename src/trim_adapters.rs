@@ -3,6 +3,7 @@ use crate::ProgressBar;
 use crate::ProgressStyle;
 use crate::Command;
 use crate::Path;
+use crate::Regex;
 use crate::extract_umis;
 use crate::extract_umis_qiagen;
 
@@ -38,14 +39,15 @@ use crate::extract_umis_qiagen;
 /// * A vector of strings containing the names of the FASTQ files after trimming.
 pub fn trim_adapters(fastqs: Vec<String>
                 , library_type: HashMap<String, String>
-                , minimum_length: u8)
+                , minimum_length: u8
+                , umi_regex: &Regex)
                 -> Vec<String> {
     let num_of_fastqs = fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
     
     progress_br.set_style(
         ProgressStyle::default_bar()
-            .template("{spinner:.green} [{eta_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );
@@ -68,6 +70,7 @@ pub fn trim_adapters(fastqs: Vec<String>
             "--adapter",
         ];
     
+        // Set library type being analyzed
         match library_type.get(&sample_name.to_string()).unwrap().as_str() {
             "UMI" => {
                 let output_file_name = format!("{}.unprocessed.cut.fastq", sample_name);
@@ -82,6 +85,7 @@ pub fn trim_adapters(fastqs: Vec<String>
                     , &too_short_output
                     , fastq_file
                 ]);
+
                 // Call cutadapt
                 let output = Command::new("cutadapt")
                     .args(&cutadapt_args)
@@ -95,19 +99,22 @@ pub fn trim_adapters(fastqs: Vec<String>
                 // Call function to extract UMIs from each read
                 if let Some(extract) = Some(extract_umis) {
                     let args = Some((sample_name, "_")).unwrap();
-                    if let Err(e) = extract(args.0, args.1) {
+                    if let Err(e) = extract(args.0, args.1, umi_regex) {
                         eprintln!("Error when extracting UMIs: {:?}", e);
                     }
                 }
             }
             "Qiagen" => {
                 let adapter = "AACTGTAGGCACCATCAAT";
+
+                // Extraction must come first because trimming the 3' adapter first would remove the UMI
                 if let Some(extract) = Some(extract_umis_qiagen) {
                     let args = Some((fastq_file, sample_name, "_")).unwrap();
                     if let Err(e) = extract(args.0, args.1, args.2) {
                         eprintln!("Error when extracting UMIs: {:?}", e);
                     }
                 }
+
                 let fastq = format!("{}.processed.fastq", sample_name);
                 let output_file_name = format!("{}.cut.fastq", sample_name);
 
