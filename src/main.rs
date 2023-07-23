@@ -40,7 +40,8 @@ use std::error::Error;
 use niffler::get_reader;
 use csv::{Reader as csv_reader, Writer as csv_writer};
 use bio::alignment::distance::simd::hamming;
-use std::io::BufRead;
+use bio::io::fastq::Reader;
+use flate2::bufread::MultiGzDecoder;
 
 // Define the regex to extract index information and UMI and index information
 lazy_static! {
@@ -103,17 +104,6 @@ fn mean(numbers: &Vec<f64>) -> f64 {
     sum as f64 / numbers.len() as f64
 }
 
-/// Calculate the quality score for a given sequence
-fn get_read_q_score(line: &str, q_score_list: &mut Vec<f64>) {
-    let mut unicode_numbers: Vec<f64> = Vec::new();
-    for character in line.chars() {
-        unicode_numbers.push((character as u32).into());
-    }
-
-    let q_score = mean(&unicode_numbers) - 33.0;
-    q_score_list.push(q_score);
-}
-
 /// Calculate the average quality score of a FASTQ file.
 ///
 /// # Arguments
@@ -132,29 +122,24 @@ fn get_read_q_score(line: &str, q_score_list: &mut Vec<f64>) {
 /// println!("The average quality score is {}.", avg_quality);
 /// ```
 fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Error>> {
-    let reader = File::open(input_fastq)?;
-    let (mut reader, _compression) = get_reader(Box::new(reader))?;
+    let file = File::open(input_fastq)?;
+    let reader = Reader::new(MultiGzDecoder::new(BufReader::new(file)));
 
     let mut q_score_list = Vec::new();
 
-    let mut lines = BufReader::new(&mut reader).lines();
-    while let Some(line) = lines.next() {
-        // Skip the line if there is an error
-        let line = match line {
-            Ok(line) => line,
-            Err(_) => continue,
-        };
-
-        // Only want to process every 4th line, which are the quality scores
-        if line.starts_with('@') {
-            lines.next();
-            lines.next();
-            if let Some(quality_line) = lines.next() {
-                if let Ok(quality_line) = quality_line {
-                    get_read_q_score(&quality_line, &mut q_score_list);
-                }
-            }
+    for record_result in reader.records() {
+        let record = record_result.expect("Error during fastq record parsing");
+        if record.is_empty() {
+            let _check = record.check();
+            break;
         }
+    
+        let quals = record.qual();
+        let sum_qual: f64 = quals.iter().map(|&c| c as f64 - 33.0).sum();
+
+        let q_score = sum_qual / record.seq().len() as f64;
+
+        q_score_list.push(q_score.round());
     }
 
     Ok(mean(&q_score_list))
@@ -324,7 +309,7 @@ fn main() -> io::Result<()> {
                 .short('Q')
                 .long("quality_score")
                 .takes_value(false)
-                .help("Set flag to output file containing each fastq's average read quality.")
+                .help("Set flag to write output file containing each fastq's average read quality.")
         )
         .arg(
             Arg::with_name("thresholds")
@@ -352,14 +337,14 @@ fn main() -> io::Result<()> {
             .value_name("UMI_REGEX")
             .help("The regular expression pattern to capture each UMI. This pattern should contain capture \
                 groups for the UMI bases and can include any intermediate bases.\n\n\
-                For example, to capture a UMI of 10 bases, use \"(.{10})\". If the UMI is split by specific \
+                For example, to capture a UMI of 10 bases, use \"(^.{10})\". If the UMI is split by specific \
                 bases, include those bases in the pattern as well. For example, if a 12-base UMI is split \
-                into three groups of 4 bases each by the bases 'CCA' and 'TCA', use \"(.{4})CCA(.{4})TCA(.{4})\".\n\n\
+                into three groups of 4 bases each by the bases 'CCA' and 'TCA', use \"(^.{4})CCA(.{4})TCA(.{4})\".\n\n\
                 Note: This is currently limited to UMIs on the 5' side of each sequence \
                 unless analyzing Qiagen libraries, see '--qiagen' flag, and the double \
                 quotes are required.")
             .takes_value(true)
-            .default_value("(.{12})"),
+            .default_value("(^.{12})"),
         )
         .get_matches();
 
