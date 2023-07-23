@@ -67,7 +67,7 @@ lazy_static! {
 /// let target_files = capture_target_files(".txt");
 /// // target_files is ["file1.txt", "file2.txt", "file3.txt"]
 /// ```
-fn capture_target_files(files_to_capture: &str) -> Vec<String> {
+pub fn capture_target_files(files_to_capture: &str) -> Vec<String> {
     let entries = fs::read_dir(".").expect("Failed to read directory");
 
     let mut files = Vec::new();
@@ -91,7 +91,7 @@ fn capture_target_files(files_to_capture: &str) -> Vec<String> {
 }
 
 /// Check if a file is gzipped by reading the first two bytes and comparing them to the gzip magic numbers
-fn is_gzipped(filename: &str) -> io::Result<bool> {
+pub fn is_gzipped(filename: &str) -> io::Result<bool> {
     let mut file = File::open(filename)?;
     let mut buffer = [0; 2];  // Buffer to store the first two bytes
     file.read(&mut buffer)?;
@@ -99,7 +99,7 @@ fn is_gzipped(filename: &str) -> io::Result<bool> {
 }
 
 /// Calcualte the mean of an input vector
-fn mean(numbers: &Vec<f64>) -> f64 {
+pub fn mean(numbers: &Vec<f64>) -> f64 {
     let sum: f64 = numbers.iter().sum();
     sum as f64 / numbers.len() as f64
 }
@@ -121,7 +121,7 @@ fn mean(numbers: &Vec<f64>) -> f64 {
 /// let avg_quality = average_read_quality("sample.fastq")?;
 /// println!("The average quality score is {}.", avg_quality);
 /// ```
-fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Error>> {
+pub fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Error>> {
     let file = File::open(input_fastq)?;
     let reader = Reader::new(MultiGzDecoder::new(BufReader::new(file)));
 
@@ -162,7 +162,7 @@ fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error::Er
 /// let avg_qualities = average_quality_scores(&["file1.fastq", "file2.fastq", "file3.fastq"])?;
 /// println!("The average quality scores are: {:?}", avg_qualities);
 /// ```
-fn average_quality_scores(fastq_files: &Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
+pub fn average_quality_scores(fastq_files: &Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
     let num_of_fastqs = fastq_files.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
     

@@ -80,18 +80,14 @@ pub fn is_sam_file_empty(sam_file: &str) -> Result<(), io::Error> {
 /// * `sample_names` - Vector of sample names.
 /// * `reference` - Path to the bowtie2 reference.
 /// * `num_threads` - Number of threads to use for alignment and conversion processes.
+/// * `include_unaligned_reads` - Boolean flag for whether to include unaligned reads or not.
 ///
 /// # Example
 /// ```
 /// let trimmed_fastqs = vec!["sample1.cut.fastq", "sample2.cut.fastq", "sample3.cut.fastq"];
-/// let library_type = [
-///     ("sample1", "UMI"), 
-///     ("sample2", "UMI"), 
-///     ("sample3", "UMI")
-/// ].iter().cloned().collect();
 /// let sample_names = vec!["sample1", "sample2", "sample3"];
 ///
-/// rna_discovery_calculation(trimmed_fastqs, library_type, sample_names, "path/to/reference", 12);
+/// rna_discovery_calculation(trimmed_fastqs, sample_names, "path/to/reference", 12, false);
 /// // This will generate "sample1.miRNA.sam", "sample2.miRNA.sam", "sample3.miRNA.sam" files
 /// // and will return a vector of SAM file paths.
 /// ```
