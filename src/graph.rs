@@ -137,7 +137,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
                 if use_levenshtein {
                     levenshtein(&umis[i], &umis[j]) as i32
                 } else {
-                    edit(&umis[i], &umis[j]) as i32
+                    hamming(&umis[i], &umis[j]) as i32
                 };
 
                 // If edit distance is within max edits, consider for edge addition

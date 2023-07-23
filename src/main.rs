@@ -222,7 +222,7 @@ pub fn average_read_quality(input_fastq: &str) -> Result<f64, Box<dyn std::error
 
         let q_score = sum_qual / record.seq().len() as f64;
 
-        q_score_list.push(q_score.round());
+        q_score_list.push(q_score);
     }
 
     Ok(mean(&q_score_list))
