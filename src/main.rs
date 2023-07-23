@@ -477,7 +477,7 @@ fn main() -> io::Result<()> {
         )
         .arg(
             Arg::with_name("levenshtein_distance")
-                .short('d')
+                .short('L')
                 .long("levenshtein")
                 .takes_value(false)
                 .help("Use the levenshtein distance as the edit distance when comparing UMIs. \
