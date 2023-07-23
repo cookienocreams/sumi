@@ -21,7 +21,7 @@ type UmiGraph = (Graph<Vec<u8>, i32>, HashMap<NodeIndex, (Vec<u8>, i32)>);
 /// that contain that substring. The size of the substring is determined by `slice_size`.
 ///
 /// The index is used to quickly find potential neighbor UMIs that may be within a certain 
-/// Hamming distance, without having to compute the distance between all pairs of UMIs.
+/// edit distance, without having to compute the distance between all pairs of UMIs.
 ///
 /// # Arguments
 ///
@@ -60,16 +60,16 @@ pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec
 /// Create a graph from a dictionary of UMIs and their counts.
 ///
 /// This function constructs a graph where each node represents a unique UMI and each edge represents
-/// a Hamming distance less than or equal to `max_edits` between two UMIs. The edge creation is based 
+/// a edit distance less than or equal to `max_edits` between two UMIs. The edge creation is based 
 /// on the condition that the count of one UMI should be at least five times the count of the other 
 /// UMI minus 1. If the condition is met, an edge is added between the two UMIs. 
 ///
-/// The function implements a slightly modified directional graph algorithm that allows for a Hamming 
+/// The function implements a slightly modified directional graph algorithm that allows for a edit 
 /// Distance of 1 between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq 
 /// and small RNA-seq using unique molecular identifiers. <https://doi.org/10.1186/s12864-018-4933-1>. 
 /// The original algorithm uses a two fold count threshold. This version of the algorithm uses a 
 /// substring indexing strategy to efficiently find potential neighbors for each UMI before computing 
-/// the Hamming distance, hence improving the performance for large datasets.
+/// the edit distance, hence improving the performance for large datasets.
 ///
 /// Note that Levenshtein distance could be used here, but it generally takes longer to run and 
 /// has a negligible effect on UMI deduplication.
@@ -77,7 +77,7 @@ pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec
 /// # Arguments
 ///
 /// * `umi_count_dict` - A hashmap where the key is the UMI (as a byte array) and the value is its count.
-/// * `max_edits` - The maximum Hamming distance allowed to consider two UMIs as neighbors 
+/// * `max_edits` - The maximum edit distance allowed to consider two UMIs as neighbors 
 /// (i.e., to add an edge between them).
 ///
 /// # Returns
@@ -129,7 +129,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
             }
         }
 
-        // For each potential neighbor, compute hamming distance and add edge if conditions are met
+        // For each potential neighbor, compute edit distance and add edge if conditions are met
         for j in potential_neighbors {
             // Ensure that we don't compute the distance between a UMI and itself
             if i != j {
@@ -137,10 +137,10 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
                 if use_levenshtein {
                     levenshtein(&umis[i], &umis[j]) as i32
                 } else {
-                    hamming(&umis[i], &umis[j]) as i32
+                    edit(&umis[i], &umis[j]) as i32
                 };
 
-                // If hamming distance is within max edits, consider for edge addition
+                // If edit distance is within max edits, consider for edge addition
                 if edit_distance <= max_edits {
                     let node_i: NodeIndex = NodeIndex::new(i);
                     let node_j: NodeIndex = NodeIndex::new(j);
@@ -176,7 +176,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
 /// # Arguments
 ///
 /// * `graph` - A reference to the UMI graph which is of type `Graph<Vec<u8>, i32>`. Each node
-/// represents a unique UMI, and each edge represents a Hamming distance less than a specified
+/// represents a unique UMI, and each edge represents a edit distance less than a specified
 /// threshold between two UMIs.
 ///
 /// * `node_attributes` - A reference to a HashMap mapping node indices to a tuple of UMIs and 

@@ -142,7 +142,7 @@ impl Config {
 ///
 /// # Returns
 ///
-/// A vector of strings, each string being the path of a file that contains the target string.
+/// A sorted vector of strings, each string being the path of a file that contains the target string.
 ///
 /// # Example
 ///
