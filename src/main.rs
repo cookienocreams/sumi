@@ -39,7 +39,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use std::error::Error;
 use niffler::get_reader;
 use csv::{Reader as csv_reader, Writer as csv_writer};
-use bio::alignment::distance::simd::hamming;
+use bio::alignment::distance::simd::*;
 use bio::io::fastq::Reader;
 use flate2::bufread::MultiGzDecoder;
 
@@ -49,6 +49,89 @@ lazy_static! {
     static ref DUAL_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+\+[ATCGN]+").unwrap();
     static ref READ_NAME_UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
     static ref UMI_REGEX_QIAGEN: Regex = Regex::new(r"AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG").unwrap();
+}
+
+/// The `Config` struct is used to store the configuration settings for the analysis.
+///
+/// # Fields
+///
+/// * `minimum_length` - The minimum length a fragment needs to be to be analyzed.
+/// * `num_threads` - The number of threads to be used for the analysis.
+/// * `keep_intermediate_files` - A flag indicating whether to keep intermediate files generated during the analysis.
+/// * `alignment_reference` - The reference sequence for alignment.
+/// * `subsample_fastqs` - The number of reads to subsample from the FASTQ files. If `None`, all reads are used.
+/// * `subsample_to_lowest` - A flag indicating whether to subsample all FASTQ files to the size of the smallest one.
+/// * `qiagen` - A flag indicating whether the analysis is using Qiagen data.
+/// * `quality_score` - A flag indicating whether to include quality scores in an output file.
+/// * `thresholds` - A vector of values representing the thresholds for counting RNA species.
+/// * `include_unaligned_reads` - A flag indicating whether to include unaligned reads in the analysis.
+/// * `levenshtein_distance` - A flag indicating whether to compute the Levenshtein distance for the reads.
+/// * `umi_regex` - A regular expression used to match Unique Molecular Identifiers (UMIs) in the reads.
+#[derive(Debug)]
+struct Config {
+    minimum_length: u8,
+    num_threads: u8,
+    keep_intermediate_files: bool,
+    alignment_reference: String,
+    subsample_fastqs: Option<u32>,
+    subsample_to_lowest: bool,
+    qiagen: bool,
+    quality_score: bool,
+    thresholds: Vec<usize>,
+    include_unaligned_reads: bool,
+    levenshtein_distance: bool,
+    umi_regex: String,
+}
+
+impl Config {
+    /// Constructs a new `Config` instance from the command-line arguments.
+    ///
+    /// # Arguments
+    ///
+    /// * `matches` - The command-line arguments wrapped in a clap::ArgMatches instance.
+    ///
+    /// # Returns
+    ///
+    /// A `Config` instance populated with the command-line arguments.
+    fn new(matches: clap::ArgMatches) -> Self {
+        // Parse the command-line arguments
+        let minimum_length = *matches.get_one("minimum_length").unwrap();
+        let num_threads = *matches.get_one("num_threads").unwrap();
+        let keep_intermediate_files = matches.is_present("keep_intermediate_files");
+        let alignment_reference = matches.value_of("alignment_reference").unwrap().to_string();
+        let subsample_fastqs = match matches.value_of("subsample_fastqs") {
+            Some(count) => match count.parse::<u32>() {
+                Ok(value) => Some(value),
+                Err(_) => None,
+            },
+            None => None,
+        };
+        let subsample_to_lowest = matches.is_present("subsample_to_lowest");
+        let qiagen = matches.is_present("qiagen");
+        let quality_score = matches.is_present("quality_score");
+        let thresholds = match matches.values_of("thresholds") {
+            Some(values) => values.map(|x| x.parse::<usize>().expect("Threshold must be a number.")).collect(),
+            None => vec![1, 3, 5, 10],
+        };
+        let include_unaligned_reads = matches.is_present("include_unaligned_reads");
+        let levenshtein_distance = matches.is_present("levenshtein_distance");
+        let umi_regex = matches.value_of("umi_regex").unwrap().to_string();
+
+        Self {
+            minimum_length,
+            num_threads,
+            keep_intermediate_files,
+            alignment_reference,
+            subsample_fastqs,
+            subsample_to_lowest,
+            qiagen,
+            quality_score,
+            thresholds,
+            include_unaligned_reads,
+            levenshtein_distance,
+            umi_regex,
+        }
+    }
 }
 
 /// List all files in the current directory that contain the target string.
@@ -196,6 +279,67 @@ pub fn average_quality_scores(fastq_files: &Vec<String>) -> Result<(), Box<dyn s
     Ok(())
 }
 
+/// Calculates the minimum length to allow post adapter trimming.
+///
+/// This function extracts the length of UMI and intermediate bases from the given regex pattern,
+/// and then calculates the minimum length of a fragment taking the UMI length into account.
+///
+/// # Arguments
+///
+/// * `input_regex` - A string slice that holds the regex pattern used for UMI extraction.
+/// * `minimum_length` - A u8 value that specifies the minimum fragment length without 
+/// considering UMI length.
+/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value 
+/// affects how the minimum length is calculated.
+///
+/// # Returns
+///
+/// * A tuple `(umi_length, min_length)` where:
+///   * `umi_length` is the calculated length of the UMI and intermediate bases.
+///   * `min_length` is the calculated minimum length of a fragment considering UMI length.
+///
+/// # Examples
+///
+/// ```
+/// let input_regex = "^(.{12})";
+/// let min_length = 16;
+/// let is_qiagen = false;
+///
+/// let minimum_length = calculate_lengths(input_regex, min_length, is_qiagen);
+/// ```
+fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bool) -> u8 {
+    let num_capture_regex = Regex::new(r"\.\{(\d+)\}").unwrap();
+    let base_capture_regex = Regex::new(r"[ATCG]+").unwrap();
+    let mut umi_sum: u8 = 0;
+
+    // Get length of UMI by combining the numbers in the capture groups in the regex pattern
+    for captures in num_capture_regex.captures_iter(input_regex) {
+        if let Ok(num) = captures[1].parse::<u8>() {
+            umi_sum += num;
+        }
+    }
+
+    // Get length of intermediate bases between UMI groups if present
+    for capture in base_capture_regex.find_iter(input_regex) {
+        umi_sum += capture.as_str().len() as u8;
+    }
+
+    // Set the minimum fragment length taking UMI length into account
+    let mut min_length = minimum_length;
+    let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
+
+    min_length = 
+        if min_length != 16 && !is_qiagen { 
+            min_length + umi_length 
+        } else if min_length == 16 && !is_qiagen {
+            16 + umi_length
+        } else {
+            16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
+        };
+
+    min_length
+}
+
 /// Remove all intermediate files.
 ///
 /// # Returns
@@ -232,6 +376,7 @@ fn remove_intermediate_files() {
 }
 
 fn main() -> io::Result<()> {
+
     let matches = App::new("Small RNA Analysis")
         .version("1.0")
         .author("Author: Michael Hawkins")
@@ -331,6 +476,14 @@ fn main() -> io::Result<()> {
                  increase run time.")
         )
         .arg(
+            Arg::with_name("levenshtein_distance")
+                .short('d')
+                .long("levenshtein")
+                .takes_value(false)
+                .help("Use the levenshtein distance as the edit distance when comparing UMIs. \
+                Note this can significantly increase run time.")
+        )
+        .arg(
             Arg::with_name("umi_regex")
             .short('p')
             .long("umi_regex")
@@ -348,75 +501,28 @@ fn main() -> io::Result<()> {
         )
         .get_matches();
 
-    // Check if Qiagen libraries are being used
-    let is_qiagen = matches.is_present("qiagen");
+    let config = Config::new(matches);
 
     // Set the library type
     let library_type: &str;
-    if is_qiagen {
+    if config.qiagen {
         library_type = "Qiagen"
     } else {
         library_type = "UMI"
     }
 
     // Gather all the input parameters
-    let keep_intermediates: bool = matches.is_present("keep_intermediate_files");
-    let num_threads: u8 = *matches.get_one("num_threads").unwrap();
-    let reference: &str = matches.value_of("alignment_reference").unwrap();
-    let reference_name: &str = Path::new(reference).file_name().unwrap().to_str().unwrap();
-    let include_unaligned_reads = matches.is_present("include_unaligned_reads");
-    let input_regex = matches.value_of("umi_regex").unwrap();
+    let reference = &config.alignment_reference;
+    let reference_name = Path::new(reference).file_name().unwrap().to_str().unwrap();
 
-    let umi_regex_result = Regex::new(matches.value_of("umi_regex").unwrap());
+    let umi_regex_result = Regex::new(&config.umi_regex);
     let umi_regex = match umi_regex_result {
         Ok(regex) => regex,
         Err(_) => panic!("Unexpected umi regex pattern")
     };
-    
-    let thresholds: Vec<usize> = match matches.values_of("thresholds") {
-        Some(values) => values.map(|x| x.parse::<usize>().expect("Threshold must be a number.")).collect(),
-        None => vec![1, 3, 5, 10],
-    };
 
-    let subsample: Option<u32> = match matches.value_of("subsample_fastqs") {
-        Some(count) => match count.parse::<u32>() {
-            // The flag was present and the value was given and is valid
-            Ok(value) => Some(value),
-            // The flag was present and the value was given but is not valid.
-            Err(_) => None,
-        },
-        None => None, // The flag was not present
-    };
-
-    // Set regex patterns to set minimum length accounting for UMI length
-    let num_capture_regex = Regex::new(r"\.\{(\d+)\}").unwrap();
-    let base_capture_regex = Regex::new(r"[ATCG]+").unwrap();
-    let mut umi_sum: u8 = 0;
-        
-    // Get length of UMI by combining the numbers in the caputure groups in the regex pattern
-    for captures in num_capture_regex.captures_iter(input_regex) {
-        if let Ok(num) = captures[1].parse::<u8>() {
-            umi_sum += num;
-        }
-    }
-
-    // Get length of intermediate bases between UMI groups if present
-    for capture in base_capture_regex.find_iter(input_regex) {
-        umi_sum += capture.as_str().len() as u8;
-    }
-
-    // Set the minimum fragment length taking UMI length into account
-    let mut minimum_length = *matches.get_one::<u8>("minimum_length").unwrap();
-    let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
-
-    minimum_length = 
-        if minimum_length != 16 && !is_qiagen { 
-            minimum_length + umi_length 
-        } else if minimum_length == 16 && !is_qiagen {
-            16 + umi_length
-        } else {
-            16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
-        };
+    // Set minimum length for adapter trimming
+    let minimum_length = calculate_minimum_length(&config.umi_regex, config.minimum_length, config.qiagen);
 
     // Get fastq files
     let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
@@ -452,8 +558,7 @@ fn main() -> io::Result<()> {
     }
 
     // Check quality scores if desired
-    let analyze_quality_scores = matches.is_present("quality_score");
-    if analyze_quality_scores {
+    if config.quality_score {
         match average_quality_scores(&fastq_files) {
             Ok(_) => (),
             Err(err) => println!("Error: {:?}", err),
@@ -464,16 +569,14 @@ fn main() -> io::Result<()> {
     let mut trimmed_fastqs: Vec<String> = vec![];
 
     // Subsample fastqs if desired
-    let subsample_to_lowest = matches.is_present("subsample_to_lowest");
-
-    if subsample_to_lowest {
+    if config.subsample_to_lowest {
         // Subsample to the smallest fastq file
         let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), None);
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
         trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, &umi_regex);
-    } else if let Some(n_reads) = subsample {
+    } else if let Some(n_reads) = config.subsample_fastqs {
         // Subsample to the specified number of reads
         let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), Some(n_reads as usize));
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
@@ -489,8 +592,9 @@ fn main() -> io::Result<()> {
     // Error correct UMIs in sample bam file
     let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs
                                                                 , sample_names.clone()
-                                                                , reference, num_threads
-                                                                , include_unaligned_reads) 
+                                                                , &config.alignment_reference, config.num_threads
+                                                                , config.include_unaligned_reads
+                                                                , config.levenshtein_distance) 
                                                                 else {panic!("An error occurred during the RNA counting calculation")};
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));
@@ -498,7 +602,7 @@ fn main() -> io::Result<()> {
     // Create read length distribution
     let _ = calculate_read_length_distribution(sam_files);
 
-    let _ = threshold_count(rna_counts_files.clone(), thresholds, sample_names.clone(), reference);
+    let _ = threshold_count(rna_counts_files.clone(), config.thresholds, sample_names.clone(), reference);
 
     let threshold_files = capture_target_files("_threshold_count_sum.csv");
 
@@ -510,7 +614,7 @@ fn main() -> io::Result<()> {
     let _ = write_common_rna_file(full_rna_names_list.clone(), rna_info, rpm_info, sample_names, reference_name);
 
     // Remove intermediate files, such as bam and sam files, unless otherwise specified
-    if !keep_intermediates {
+    if !config.keep_intermediate_files {
         let _ = remove_intermediate_files();
     }
 

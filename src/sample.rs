@@ -6,10 +6,9 @@ use crate::ProgressBar;
 use crate::ProgressStyle;
 use crate::Path;
 use crate::File;
-use std::io::BufRead;
+use std::io::{BufRead, Write};
 use rand::Rng;
-use std::io::Write;
-    
+
 /// Count the number of reads in a FASTQ file.
 ///
 /// # Arguments
@@ -73,15 +72,15 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
     progress_br.set_message("Counting the reads in each fastq files...");
 
     let mut min_reads: u64 = u64::MAX;
-    let mut file_with_min_reads = String::new();
+    let mut min_index = 0;
 
-    for file in input_fastqs {
+    for (index, file) in input_fastqs.iter().enumerate() {
         // Check if the count is already stored in the HashMap
         let count = match read_counts.get(file) {
             Some(count) => *count,
             None => {
                 // If not, calculate it and store it in the HashMap
-                let count = count_reads(file)? as usize;
+                let count = count_reads(file)?.try_into().unwrap();
                 read_counts.insert(file.to_string(), count);
                 count
             }
@@ -89,7 +88,7 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
         
         if count < min_reads as usize {
             min_reads = count as u64;
-            file_with_min_reads = file.clone();
+            min_index = index;
         }
 
         progress_br.inc(1);
@@ -97,7 +96,111 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
     
     progress_br.finish_with_message("Finished counting the number of reads in the fastq files");
 
-    Ok((file_with_min_reads, min_reads))
+    Ok((input_fastqs[min_index].clone(), min_reads))
+}
+
+/// Subsamples a given FASTQ file to a target number of reads using Algorithm R for reservoir sampling.
+///
+/// # Arguments
+///
+/// * `input_file` - A string reference that holds the name of the input FASTQ file.
+/// * `target_read_count` - A usize that holds the desired number of reads in the output.
+///
+/// # Description
+///
+/// This function randomly selects a subset of reads from an input FASTQ file using 
+/// Algorithm R for reservoir sampling. The number of reads selected is determined by 
+/// the `target_read_count` argument. The input file is read only once, and the selection 
+/// process does not require knowledge of the total number of reads in the input file. 
+///
+/// # Returns
+///
+/// This function returns a Result containing a vector of vectors of Strings. Each vector 
+/// of Strings represents a selected read from the input file and its corresponding line 
+/// in the FASTQ file.
+///
+/// # Errors
+///
+/// This function will return an error if there is a problem reading the input file.
+fn subsample_file(input_file: &str, target_read_count: usize) 
+    -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
+    // Create a random number generator
+    let mut rng = rand::thread_rng();
+
+    // Open the file and get a reader that can handle potential compression
+    let reader = File::open(input_file)?;
+    let (mut reader, _compression) = get_reader(Box::new(reader))?;
+    let reader = BufReader::new(&mut reader);
+
+    // Initialize reservoir and total reads count
+    let mut reservoir: Vec<Vec<String>> = Vec::new();
+    let mut n = 0;
+
+    // Create an iterator over the lines in the file
+    let mut read_lines = reader.lines();
+
+    // While there are still lines in the file...
+    loop {
+        // Read one read
+        let read: Vec<String> = read_lines.by_ref().take(4)
+            .filter_map(Result::ok)
+            .collect();
+
+        // If less than 4 lines were read, break the loop
+        if read.len() < 4 {
+            break;
+        }
+        
+        n += 1; // Increment the total read count
+        if n <= target_read_count {
+            // If we have not yet reached the target number of reads, just store the read in the reservoir
+            reservoir.push(read);
+        } else {
+            // After reaching the target, replace a read in the reservoir with the new read with a certain probability
+            let r: usize = rng.gen_range(0..n).try_into().unwrap();
+            if r < target_read_count.try_into().unwrap() {
+                reservoir[r] = read;
+            }
+        }
+    }
+
+    Ok(reservoir)
+}
+
+/// Writes selected reads to an output FASTQ file.
+///
+/// # Arguments
+///
+/// * `output_file` - A string reference that holds the name of the output FASTQ file.
+/// * `reservoir` - A vector of vectors of Strings. Each vector of Strings represents a 
+/// selected read and its corresponding line in the FASTQ file.
+///
+/// # Description
+///
+/// This function writes the reads selected by the `subsample_file` function to an output FASTQ file. 
+/// Each read is written as a block of four lines, corresponding to the standard FASTQ format.
+///
+/// # Returns
+///
+/// This function returns a Result type indicating whether the writing was successful. If the writing is successful, 
+/// the function returns Ok(()). If there is a problem writing to the file, the function returns an error.
+///
+/// # Errors
+///
+/// This function will return an error if there is a problem writing to the output file.
+fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(), Box<dyn std::error::Error>> {
+
+    // Write the selected reads to the output FASTQ file
+    let file = File::create(output_file)?;
+    let mut writer = BufWriter::new(file);
+
+    for read in &reservoir {
+        for line in read {
+            writeln!(writer, "{}", line)?;
+        }
+    }
+
+    Ok(())
 }
 
 /// Subsample multiple FASTQ files each to a target number of reads using Algorithm R for reservoir sampling.
@@ -173,64 +276,12 @@ pub fn subsample_fastqs(input_fastqs: Vec<String>, sample_names: Vec<String>, ta
             .progress_chars("#>-"),
     );
     progress_br.set_message("Subsampling fastq files...");
-
-    // Create a random number generator
-    let mut rng = rand::thread_rng();
     
+    // Subsample fastq files
     for (fastq, sample_name) in input_fastqs.iter().zip(sample_names.iter()) {
-        // Open the file and get a reader that can handle potential compression
-        let reader = File::open(fastq)?;
-        let (mut reader, _compression) = get_reader(Box::new(reader))?;
-        let reader = BufReader::new(&mut reader);
-
-        // Initialize reservoir and total reads count
-        let mut reservoir: Vec<Vec<String>> = Vec::new();
-        let mut n = 0;
-
-        // Create an iterator over the lines in the file
-        let mut read_lines = reader.lines();
-
-        // While there are still lines in the file...
-        loop {
-            // Read one read
-            let read: Vec<String> = read_lines.by_ref().take(4)
-                .filter_map(Result::ok)
-                .collect();
-
-            // If less than 4 lines were read, break the loop
-            if read.len() < 4 {
-                break;
-            }
-            
-            n += 1; // Increment the total read count
-            if n <= target_read_count {
-                // If we have not yet reached the target number of reads, just store the read in the reservoir
-                reservoir.push(read);
-            } else {
-                // After reaching the target, replace a read in the reservoir with the new read with a certain probability
-                let r: usize = rng.gen_range(0..n).try_into().unwrap();
-                if r < target_read_count.try_into().unwrap() {
-                    reservoir[r] = read;
-                }
-            }
-        }
-
-        // If total reads is less than or equal to target_read_count and it's not the smallest file, skip subsampling for this file
-        if n <= target_read_count && fastq != &smallest_fastq_file {
-            continue;
-        }
-
+        let reservoir = subsample_file(fastq, target_read_count)?;
         let output_filename = format!("{}_subsample.fastq", sample_name);
-
-        // Write the selected reads to the output FASTQ file
-        let file = File::create(output_filename)?;
-        let mut writer = BufWriter::new(file);
-
-        for read in &reservoir {
-            for line in read {
-                writeln!(writer, "{}", line)?;
-            }
-        }
+        let _ = write_to_output(&output_filename, reservoir)?;
 
         progress_br.inc(1);
     }

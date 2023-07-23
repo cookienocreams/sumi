@@ -2,10 +2,11 @@ use std::collections::{HashMap, HashSet};
 use crate::io;
 use crate::Graph;
 use crate::NodeIndex;
-use crate::UMI_REGEX;
+use crate::READ_NAME_UMI_REGEX;
 use crate::Error;
 use crate::bam::RecordWriter;
 use crate::hamming;
+use crate::levenshtein;
 use petgraph::visit::Bfs;
 use petgraph::visit::VisitMap;
 use petgraph::visit::Visitable;
@@ -93,7 +94,7 @@ pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec
 /// let max_edits: i32 = 1;
 /// let (graph, node_attributes) = umi_graph(&umi_count_dict, max_edits);
 /// ```
-pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32) -> UmiGraph {
+pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_levenshtein: bool) -> UmiGraph {
     let mut graph: Graph<Vec<u8>, i32> = Graph::<Vec<u8>, i32>::new();
     let mut node_attributes: HashMap<NodeIndex, (Vec<u8>, i32)> = HashMap::new();
 
@@ -132,10 +133,15 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32) -> UmiG
         for j in potential_neighbors {
             // Ensure that we don't compute the distance between a UMI and itself
             if i != j {
-                let hamming_dist= hamming(&umis[i], &umis[j]) as i32;
+                let edit_distance =
+                if use_levenshtein {
+                    levenshtein(&umis[i], &umis[j]) as i32
+                } else {
+                    hamming(&umis[i], &umis[j]) as i32
+                };
 
                 // If hamming distance is within max edits, consider for edge addition
-                if hamming_dist <= max_edits {
+                if edit_distance <= max_edits {
                     let node_i: NodeIndex = NodeIndex::new(i);
                     let node_j: NodeIndex = NodeIndex::new(j);
                     let (_, count_i) = node_attributes.get(&node_i).unwrap();
@@ -143,11 +149,11 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32) -> UmiG
 
                     // Add edges based on UMI count conditions
                     if *count_i >= 5 * *count_j - 1 {
-                        graph.add_edge(node_i, node_j, hamming_dist);
+                        graph.add_edge(node_i, node_j, edit_distance);
                     }
 
                     if *count_j >= 5 * *count_i - 1 {
-                        graph.add_edge(node_j, node_i, hamming_dist);
+                        graph.add_edge(node_j, node_i, edit_distance);
                     }
                 }
             }
@@ -249,7 +255,7 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, i32>
 /// ```rust
 /// let corrected_umis = find_true_umis("sample1.UMI.bam");
 /// ```
-pub fn find_true_umis(input_bam_file: &str) -> Result<HashSet<Vec<u8>>, io::Error> {
+pub fn find_true_umis(input_bam_file: &str, use_levenshtein: bool) -> Result<HashSet<Vec<u8>>, io::Error> {
     let mut umi_counts: HashMap<Vec<u8>, i32> = HashMap::new();
     let bam_reader = bam::BamReader::from_path(input_bam_file, 11).unwrap();
 
@@ -257,7 +263,7 @@ pub fn find_true_umis(input_bam_file: &str) -> Result<HashSet<Vec<u8>>, io::Erro
         let record = result.unwrap();
         let qname = record.name();
 
-        if let Some(captures) = UMI_REGEX.captures(std::str::from_utf8(qname).unwrap()) {
+        if let Some(captures) = READ_NAME_UMI_REGEX.captures(std::str::from_utf8(qname).unwrap()) {
             let umi = captures.get(1).unwrap().as_str().as_bytes().to_vec();
             *umi_counts.entry(umi).or_insert(0) += 1;
         }
@@ -267,7 +273,7 @@ pub fn find_true_umis(input_bam_file: &str) -> Result<HashSet<Vec<u8>>, io::Erro
         return Err(io::Error::new(io::ErrorKind::InvalidInput, "No UMIs found"));
     }
 
-    let (graph, node_attributes) = umi_graph(&umi_counts, 1);
+    let (graph, node_attributes) = umi_graph(&umi_counts, 1, use_levenshtein);
 
     // Find the representative UMIs
     let corrected_umis = get_representative_umis_bfs(&graph, &node_attributes);
