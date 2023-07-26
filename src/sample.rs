@@ -133,7 +133,7 @@ fn subsample_file(input_file: &str, target_read_count: usize)
     let reader = BufReader::new(&mut reader);
 
     // Initialize reservoir and total reads count
-    let mut reservoir: Vec<Vec<String>> = Vec::new();
+    let mut reservoir: Vec<Vec<String>> = Vec::with_capacity(target_read_count);
     let mut n = 0;
 
     // Create an iterator over the lines in the file
@@ -152,12 +152,15 @@ fn subsample_file(input_file: &str, target_read_count: usize)
         }
         
         n += 1; // Increment the total read count
+        
         if n <= target_read_count {
             // If we have not yet reached the target number of reads, just store the read in the reservoir
             reservoir.push(read);
         } else {
-            // After reaching the target, replace a read in the reservoir with the new read with a certain probability
-            let r: usize = rng.gen_range(0..n).try_into().unwrap();
+            // Generate a random number between 0 and the total read count (inclusive)
+            let r: usize = rng.gen_range(0..=n).try_into().unwrap();
+
+            // If the random number is less than the target read count, replace a read in the reservoir
             if r < target_read_count.try_into().unwrap() {
                 reservoir[r] = read;
             }
