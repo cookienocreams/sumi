@@ -4,16 +4,16 @@ use crate::Graph;
 use crate::NodeIndex;
 use crate::READ_NAME_UMI_REGEX;
 use crate::Error;
-use crate::bam::RecordWriter;
 use crate::hamming;
 use crate::levenshtein;
 use petgraph::visit::Bfs;
 use petgraph::visit::VisitMap;
 use petgraph::visit::Visitable;
+use crate::bam::RecordWriter;
 
 // Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from 
 // NodeIndex to a tuple of UMI and its count.
-type UmiGraph = (Graph<Vec<u8>, i32>, HashMap<NodeIndex, (Vec<u8>, i32)>);
+type UmiGraph = (Graph<Vec<u8>, u32>, HashMap<NodeIndex, (Vec<u8>, u32)>);
 
 /// Construct a substring index from a slice of UMIs.
 ///
@@ -79,24 +79,26 @@ pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec
 /// * `umi_count_dict` - A hashmap where the key is the UMI (as a byte array) and the value is its count.
 /// * `max_edits` - The maximum edit distance allowed to consider two UMIs as neighbors 
 /// (i.e., to add an edge between them).
+/// * `use_levenshtein` - Whether to use the Levenshtein distance or the default Hamming distance
+/// as the edit distance metric.
 ///
 /// # Returns
 ///
 /// A tuple consisting of the UMI graph and a hashmap containing the node attributes. The graph is of 
-/// type `Graph<Vec<u8>, i32>`, and the hashmap key is a `NodeIndex` which points to a tuple of UMI 
+/// type `Graph<Vec<u8>, u32>`, and the hashmap key is a `NodeIndex` which points to a tuple of UMI 
 /// and its count.
 ///
 /// # Example
 ///
 /// ```rust
-/// let umi_count_dict: HashMap<Vec<u8>, i32> = HashMap::new();
+/// let umi_count_dict: HashMap<Vec<u8>, u32> = HashMap::new();
 /// // populate umi_count_dict
-/// let max_edits: i32 = 1;
+/// let max_edits: u32 = 1;
 /// let (graph, node_attributes) = umi_graph(&umi_count_dict, max_edits);
 /// ```
-pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_levenshtein: bool) -> UmiGraph {
-    let mut graph: Graph<Vec<u8>, i32> = Graph::<Vec<u8>, i32>::new();
-    let mut node_attributes: HashMap<NodeIndex, (Vec<u8>, i32)> = HashMap::new();
+pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_levenshtein: bool) -> UmiGraph {
+    let mut graph: Graph<Vec<u8>, u32> = Graph::<Vec<u8>, u32>::new();
+    let mut node_attributes: HashMap<NodeIndex, (Vec<u8>, u32)> = HashMap::new();
 
     // Collect all unique UMIs from the given UMI-count dictionary
     let umis: Vec<Vec<u8>> = umi_count_dict.keys().cloned().collect();
@@ -135,9 +137,9 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
             if i != j {
                 let edit_distance =
                 if use_levenshtein {
-                    levenshtein(&umis[i], &umis[j]) as i32
+                    levenshtein(&umis[i], &umis[j]) as u32
                 } else {
-                    hamming(&umis[i], &umis[j]) as i32
+                    hamming(&umis[i], &umis[j]) as u32
                 };
 
                 // If edit distance is within max edits, consider for edge addition
@@ -175,7 +177,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
 ///
 /// # Arguments
 ///
-/// * `graph` - A reference to the UMI graph which is of type `Graph<Vec<u8>, i32>`. Each node
+/// * `graph` - A reference to the UMI graph which is of type `Graph<Vec<u8>, u32>`. Each node
 /// represents a unique UMI, and each edge represents a edit distance less than a specified
 /// threshold between two UMIs.
 ///
@@ -194,9 +196,9 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, i32>, max_edits: i32, use_lev
 /// // assume `graph` and `node_attributes` are predefined
 /// let representative_umis = get_representative_umis_bfs(&graph, &node_attributes);
 /// ```
-pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, i32>
+pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, u32>
                                 , node_attributes: &HashMap<NodeIndex
-                                , (Vec<u8>, i32)>) -> HashSet<Vec<u8>> {
+                                , (Vec<u8>, u32)>) -> HashSet<Vec<u8>> {
     // Initialize an empty HashSet to store the representative UMIs.
     let mut repr_umis: HashSet<Vec<u8>> = HashSet::new();
 
@@ -209,7 +211,7 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, i32>
         if !visited.is_visited(&start_node) {
             let mut bfs = Bfs::new(graph, start_node);
             // Initialize variables to keep track of the UMI with the maximum count in the current component.
-            let mut max_count:i32 = 0;
+            let mut max_count:u32 = 0;
             let mut max_umi: Vec<u8> = Vec::new();
 
             while let Some(node) = bfs.next(graph) {
@@ -217,7 +219,7 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, i32>
                 visited.visit(node);
 
                 // Get the UMI and its count for the current node.
-                let cur_umi: &(Vec<u8>, i32) = node_attributes.get(&node).unwrap();
+                let cur_umi: &(Vec<u8>, u32) = node_attributes.get(&node).unwrap();
 
                 // If the current UMI count is greater than the max count seen so far, update max_count and max_umi.
                 if cur_umi.1 > max_count {
@@ -256,7 +258,7 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, i32>
 /// let corrected_umis = find_true_umis("sample1.UMI.bam");
 /// ```
 pub fn find_true_umis(input_bam_file: &str, use_levenshtein: bool) -> Result<HashSet<Vec<u8>>, io::Error> {
-    let mut umi_counts: HashMap<Vec<u8>, i32> = HashMap::new();
+    let mut umi_counts: HashMap<Vec<u8>, u32> = HashMap::new();
     let bam_reader = bam::BamReader::from_path(input_bam_file, 11).unwrap();
 
     for result in bam_reader {

@@ -42,6 +42,7 @@ use csv::{Reader as csv_reader, Writer as csv_writer};
 use bio::alignment::distance::simd::*;
 use bio::io::fastq::Reader;
 use flate2::bufread::MultiGzDecoder;
+use glob::glob;
 
 lazy_static! {
     /// Define the regex to extract index information and UMI and index information
@@ -161,20 +162,19 @@ impl Config {
 /// // target_files is ["file1.txt", "file2.txt", "file3.txt"]
 /// ```
 pub fn capture_target_files(files_to_capture: &str) -> Vec<String> {
-    let entries = fs::read_dir(".").expect("Failed to read directory");
+    let mut files: Vec<String> = Vec::new();
+    let pattern = format!("*{}*", files_to_capture);
 
-    let mut files = Vec::new();
-
-    for entry in entries {
-        if let Ok(entry) = entry {
-            let path = entry.path();
-            if let Some(filename) = path.file_name() {
-                if let Some(filename) = filename.to_str() {
-                    if filename.contains(files_to_capture) {
+    for entry in glob(&pattern).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                if let Some(filename) = path.file_name() {
+                    if let Some(filename) = filename.to_str() {
                         files.push(filename.to_string());
                     }
                 }
-            }
+            },
+            Err(e) => println!("{:?}", e),
         }
     }
 
