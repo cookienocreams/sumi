@@ -43,8 +43,8 @@ use bio::alignment::distance::simd::*;
 use bio::io::fastq::Reader;
 use flate2::bufread::MultiGzDecoder;
 
-// Define the regex to extract index information and UMI and index information
 lazy_static! {
+    /// Define the regex to extract index information and UMI and index information
     static ref SINGLE_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+").unwrap();
     static ref DUAL_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+\+[ATCGN]+").unwrap();
     static ref READ_NAME_UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
@@ -480,8 +480,7 @@ fn main() -> io::Result<()> {
                 .short('L')
                 .long("levenshtein")
                 .takes_value(false)
-                .help("Use the levenshtein distance as the edit distance when comparing UMIs. \
-                Note this can significantly increase run time.")
+                .help("Use the Levenshtein distance as the edit distance when comparing UMIs.")
         )
         .arg(
             Arg::with_name("umi_regex")
@@ -494,8 +493,8 @@ fn main() -> io::Result<()> {
                 bases, include those bases in the pattern as well. For example, if a 12-base UMI is split \
                 into three groups of 4 bases each by the bases 'CCA' and 'TCA', use \"(^.{4})CCA(.{4})TCA(.{4})\".\n\n\
                 Note: This is currently limited to UMIs on the 5' side of each sequence \
-                unless analyzing Qiagen libraries, see '--qiagen' flag, and the double \
-                quotes are required.")
+                , and the double quotes are required. If analyzing Qiagen libraries, \
+                use '--qiagen' flag instead.")
             .takes_value(true)
             .default_value("(^.{12})"),
         )
