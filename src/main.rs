@@ -60,6 +60,7 @@ lazy_static! {
 /// * `keep_intermediate_files` - A flag indicating whether to keep intermediate files generated during the analysis.
 /// * `alignment_reference` - The reference sequence for alignment.
 /// * `subsample_fastqs` - The number of reads to subsample from the FASTQ files. If `None`, all reads are used.
+/// * `rng_seed` - The seed for the random number generator used during subsampling. If `None`, thread rng is used.
 /// * `subsample_to_lowest` - A flag indicating whether to subsample all FASTQ files to the size of the smallest one.
 /// * `qiagen` - A flag indicating whether the analysis is using Qiagen data.
 /// * `quality_score` - A flag indicating whether to include quality scores in an output file.
@@ -74,6 +75,7 @@ struct Config {
     keep_intermediate_files: bool,
     alignment_reference: String,
     subsample_fastqs: Option<u32>,
+    rng_seed: Option<u64>,
     subsample_to_lowest: bool,
     qiagen: bool,
     quality_score: bool,
@@ -106,6 +108,13 @@ impl Config {
             },
             None => None,
         };
+        let rng_seed = match matches.value_of("rng_seed") {
+            Some(seed) => match seed.parse::<u64>() {
+                Ok(value) => Some(value),
+                Err(_) => None,
+            },
+            None => None,
+        };
         let subsample_to_lowest = matches.is_present("subsample_to_lowest");
         let qiagen = matches.is_present("qiagen");
         let quality_score = matches.is_present("quality_score");
@@ -123,6 +132,7 @@ impl Config {
             keep_intermediate_files,
             alignment_reference,
             subsample_fastqs,
+            rng_seed,
             subsample_to_lowest,
             qiagen,
             quality_score,
@@ -435,6 +445,16 @@ fn main() -> io::Result<()> {
                 .help("Subsample all fastqs in the current directory to a specified number of reads.")
         )
         .arg(
+            Arg::with_name("rng_seed")
+                .short('S')
+                .long("seed")
+                .value_name("RNG_SEED")
+                .takes_value(true)
+                .help("The seed for the random number generator used during subsampling. \
+                By default, the seed is set by the thread rng. Use the same seed to generate \
+                the same output.")
+        )
+        .arg(
             Arg::with_name("subsample_to_lowest")
                 .short('l')
                 .long("sample-to-lowest")
@@ -570,14 +590,14 @@ fn main() -> io::Result<()> {
     // Subsample fastqs if desired
     if config.subsample_to_lowest {
         // Subsample to the smallest fastq file
-        let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), None);
+        let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), None, config.rng_seed);
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
         trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, &umi_regex);
     } else if let Some(n_reads) = config.subsample_fastqs {
         // Subsample to the specified number of reads
-        let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), Some(n_reads as usize));
+        let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), Some(n_reads), config.rng_seed);
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
