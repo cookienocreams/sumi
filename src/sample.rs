@@ -7,7 +7,7 @@ use crate::ProgressStyle;
 use crate::Path;
 use crate::File;
 use std::io::{BufRead, Write};
-use rand::Rng;
+use rand::{Rng, SeedableRng};
 
 /// Count the number of reads in a FASTQ file.
 ///
@@ -104,7 +104,9 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
 /// # Arguments
 ///
 /// * `input_file` - A string reference that holds the name of the input FASTQ file.
-/// * `target_read_count` - A usize that holds the desired number of reads in the output.
+/// * `target_read_count` - A u32 that holds the desired number of reads in the output.
+/// * `rng_seed` - An Option containing either a specified RNG for subsampling or `None`
+/// which then uses the thread RNG seeded by the system.
 ///
 /// # Description
 ///
@@ -122,10 +124,13 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
 /// # Errors
 ///
 /// This function will return an error if there is a problem reading the input file.
-fn subsample_file(input_file: &str, target_read_count: usize) 
+fn subsample_file(input_file: &str, target_read_count: u32, rng_seed: Option<u64>) 
     -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
     // Create a random number generator
-    let mut rng = rand::thread_rng();
+    let mut rng = match rng_seed {
+        Some(rng) => rand_chacha::ChaCha8Rng::seed_from_u64(rng),
+        None => rand_chacha::ChaCha8Rng::from_rng(rand::thread_rng()).unwrap(),
+    };
 
     // Open the file and get a reader that can handle potential compression
     let reader = File::open(input_file)?;
@@ -133,7 +138,7 @@ fn subsample_file(input_file: &str, target_read_count: usize)
     let reader = BufReader::new(&mut reader);
 
     // Initialize reservoir and total reads count
-    let mut reservoir: Vec<Vec<String>> = Vec::with_capacity(target_read_count);
+    let mut reservoir: Vec<Vec<String>> = Vec::with_capacity(target_read_count.try_into().unwrap());
     let mut n = 0;
 
     // Create an iterator over the lines in the file
@@ -212,7 +217,9 @@ fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(),
 ///
 /// * `input_fastqs` - A vector of Strings that hold the names of the input FASTQ files.
 /// * `sample_names` - A vector of Strings that hold the names of the samples.
-/// * `target_read_count` - A usize that holds the desired number of reads in the output files.
+/// * `target_read_count` - A u32 that holds the desired number of reads in the output files.
+/// * `rng_seed` - An Option containing either a specified RNG for subsampling or `None`
+/// which then uses the thread RNG seeded by the system.
 ///
 /// # Description
 ///
@@ -243,7 +250,10 @@ fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(),
 /// let sample_names = vec!["sample1", "sample2"];
 /// subsample_fastqs(input_fastqs, sample_names, Some(1000)).expect("Failed to subsample fastqs");
 /// ```
-pub fn subsample_fastqs(input_fastqs: Vec<String>, sample_names: Vec<String>, target_read_count: Option<usize>) 
+pub fn subsample_fastqs(input_fastqs: Vec<String>
+                        , sample_names: Vec<String>
+                        , target_read_count: Option<u32>
+                        , rng_seed: Option<u64>) 
                     -> Result<(), Box<dyn std::error::Error>> {
     // Add a HashMap to store the read counts
     let mut read_counts: HashMap<String, usize> = HashMap::new();
@@ -282,7 +292,7 @@ pub fn subsample_fastqs(input_fastqs: Vec<String>, sample_names: Vec<String>, ta
     
     // Subsample fastq files
     for (fastq, sample_name) in input_fastqs.iter().zip(sample_names.iter()) {
-        let reservoir = subsample_file(fastq, target_read_count)?;
+        let reservoir = subsample_file(fastq, target_read_count, rng_seed)?;
         let output_filename = format!("{}_subsample.fastq", sample_name);
         let _ = write_to_output(&output_filename, reservoir)?;
 
