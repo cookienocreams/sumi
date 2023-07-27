@@ -36,7 +36,7 @@ pub fn mean(numbers: &Vec<f32>) -> f32 {
 /// # References
 ///
 /// - Illumina's explanation on quality scores and their corresponding error rates:
-///   https://www.illumina.com/science/technology/next-generation-sequencing/plan-experiments/quality-scores.html
+///   <https://www.illumina.com/science/technology/next-generation-sequencing/plan-experiments/quality-scores.html>
 pub fn get_q_score_probability(q_score: &[u8]) -> f32 {
     let mut probability_sum = 0.0;
     for &char in q_score.iter() {
