@@ -25,50 +25,35 @@ use crate::Regex;
 /// ```rust
 /// use regex::Regex;
 ///
-/// let umi_regex = Regex::new(r"(UMI_PATTERN)").unwrap();
+/// let umi_regex = Regex::new(r"(^.{12})").unwrap();
 /// extract_umis("sample1", "_", &umi_regex);
 /// // This will create an output file named "sample1.cut.fastq" with UMI-trimmed sequences.
 /// ```
-pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) -> std::io::Result<()> {
+pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) -> Result<(), Box<dyn std::error::Error>> {
 
     let filename = format!("{}.{}.{}", sample_name, "unprocessed.cut", "fastq");
 
     // Attempt to open the input file
-    let reader = match Reader::from_file(filename) {
-        Ok(reader) => reader,
-        Err(err) => return Err(std::io::Error::new(std::io::ErrorKind::Other, err.to_string())),
-    };
-
+    let reader = Reader::from_file(filename)?;
     let mut writer = Writer::to_file(format!("{}.cut.fastq", sample_name))?;
 
     // Loop over all the records in the input file
     for record_result in reader.records() {
-        let record = match record_result {
-            Ok(record) => record,
-            Err(err) => {
-                eprintln!("Error reading record: {}", err);
-                continue;
-            },
-        };
+        let record = record_result?;
 
         // Convert the sequence to a string
-        let read_sequence = match String::from_utf8(record.seq().to_vec()) {
-            Ok(s) => s,
-            Err(err) => {
-                eprintln!("Error decoding sequence as UTF-8: {}", err);
-                continue;
-            },
-        };
+        let read_sequence = std::str::from_utf8(record.seq())?;
         
         // Check if the sequence matches the UMI regex
-        if let Some(captures) = umi_regex.captures(&read_sequence) {
+        if let Some(captures) = umi_regex.captures(read_sequence) {
             
             let umi_str: String;
             let umi_start: usize;
             let umi_len: usize;
 
-            // Check if there are more than one capture groups in the regex
+            // Check if there is more than one capture group in the regex
             if captures.len() > 2 {
+                // Need length of full matched sequence, i.e., the UMI length + other bases
                 let umi_match = captures.get(0).unwrap();
                 let mut ids = vec![];
                 for i in 1..captures.len() {
@@ -104,14 +89,14 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) 
             // Check if the UMI is at a valid position within the sequence and quality strings
             if umi_start <= read_sequence.len() && umi_start <= record.qual().len() {
                 // Trim the UMI from the sequence and quality strings
-                let umi_trimmed_sequence = format!("{}", &read_sequence[umi_len..]);
+                let umi_trimmed_sequence = &record.seq()[umi_len..];
                 let trimmed_quality = &record.qual()[umi_len..];
 
                 // Create a new record with the UMI-trimmed sequence and quality
                 let new_record = Record::with_attrs(
                     &read_info_with_umi, 
                     None, 
-                    umi_trimmed_sequence.as_bytes(), 
+                    umi_trimmed_sequence, 
                     trimmed_quality,
                 );
 
