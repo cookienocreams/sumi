@@ -27,7 +27,7 @@ use rand::{Rng, SeedableRng};
 /// let num_reads = count_reads("my_file.fastq")?;
 /// println!("The file contains {} reads.", num_reads);
 /// ```
-fn count_reads(input_fastq: &str) -> Result<u64, Box<dyn std::error::Error>> {
+pub fn count_reads(input_fastq: &str) -> Result<u64, Box<dyn std::error::Error>> {
     let reader = File::open(input_fastq)?;
     let (mut reader, _compression) = get_reader(Box::new(reader))?;
 
