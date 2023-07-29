@@ -101,7 +101,7 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
     let mut node_attributes: HashMap<NodeIndex, (Vec<u8>, u32)> = HashMap::new();
 
     // Collect all unique UMIs from the given UMI-count dictionary
-    let umis: Vec<Vec<u8>> = umi_count_dict.keys().cloned().collect();
+    let mut umis: Vec<Vec<u8>> = umi_count_dict.keys().cloned().collect();
 
     // Create nodes in the graph for each UMI
     for umi in &umis {
@@ -114,6 +114,9 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
     let umi_length = umis[0].len();
     let slice_size = umi_length / (max_edits as usize + 1);
 
+    // Ensure all UMIs are the same length by removing those shorter than the expected length
+    umis.retain(|umi| umi.len() == umi_length);
+
     // Build a substring index from the UMIs
     let substring_index = build_substring_index(&umis, slice_size);
 
@@ -121,7 +124,10 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
     for i in 0..umis.len() {
         
         // Split current UMI into slices
-        let umi_slices: Vec<Vec<u8>> = umis[i].chunks(slice_size).map(|chunk| chunk.to_vec()).collect(); 
+        let umi_slices: Vec<Vec<u8>> = umis[i]
+                                        .chunks(slice_size)
+                                        .map(|chunk| chunk.to_vec())
+                                        .collect(); 
         let mut potential_neighbors = HashSet::new();
 
         // Add UMIs having common substrings with the current UMI to the potential neighbors set
