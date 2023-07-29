@@ -1,11 +1,7 @@
 use crate::File;
-use crate::MultiGzDecoder;
-use crate::BufReader;
-use crate::ProgressBar;
-use crate::ProgressStyle;
-use crate::HashMap;
-use crate::csv_writer;
 use bio::io::fastq::Reader;
+use crate::Read;
+use crate::is_gzipped;
 
 /// Calcualte the mean of an input vector
 pub fn mean(numbers: &Vec<f32>) -> f32 {
@@ -76,67 +72,24 @@ pub fn get_q_score_probability(q_score: &[u8]) -> f32 {
 /// ```
 pub fn average_read_quality(input_fastq: &str) -> Result<f32, Box<dyn std::error::Error>> {
     let file = File::open(input_fastq)?;
-    let reader = Reader::new(MultiGzDecoder::new(BufReader::new(file)));
+    let reader: Box<dyn Read>;
+
+    if is_gzipped(input_fastq).expect("Fastqs checked in main file") {
+        reader = Box::new(flate2::read::GzDecoder::new(file))
+    } else {
+        reader = Box::new(std::io::BufReader::new(file))
+    };
 
     let mut q_score_list = Vec::new();
 
-    for record_result in reader.records() {
+    let fastq_records = Reader::new(reader).records();
+    for record_result in fastq_records {
         let record = record_result?;
-        let prob_q_score = get_q_score_probability(record.qual()) / record.seq().len() as f32;
+        let seq_len = record.seq().len() as f32;
+        let prob_q_score = get_q_score_probability(record.qual()) / seq_len;
         let q_score = -10.0 * prob_q_score.log10();
         q_score_list.push(q_score);
     }
 
     Ok(mean(&q_score_list))
-}
-
-/// Calculate the average quality scores for a list of FASTQ files.
-///
-/// # Arguments
-///
-/// * `fastq_files` - A slice containing the names of the FASTQ files to process.
-///
-/// # Returns
-///
-/// This function will return a vector of the average quality scores of the input FASTQ 
-/// files. If an error occurs while reading any of the files, an error will be returned instead.
-///
-/// # Examples
-///
-/// ```
-/// let avg_qualities = average_quality_scores(&["file1.fastq", "file2.fastq", "file3.fastq"])?;
-/// println!("The average quality scores are: {:?}", avg_qualities);
-/// ```
-pub fn average_quality_scores(fastq_files: &Vec<String>) -> Result<(), Box<dyn std::error::Error>> {
-    let num_of_fastqs = fastq_files.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
-    
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    progress_br.set_message("Calculating quality scores...");
-
-    let mut quality_map = HashMap::new();
-    for file in fastq_files {
-        let avg_quality = average_read_quality(file)?;
-        quality_map.insert(file.clone(), avg_quality);
-
-        progress_br.inc(1);
-    }
-
-    let mut writer = csv_writer::from_path("q_scores.csv")?;
-    writer.write_record(&["sample", "quality score"])?;
-
-    for (sample, score) in &quality_map {
-        writer.write_record(&[sample, &score.to_string()])?;
-    }
-
-    writer.flush()?;
-
-    progress_br.finish_with_message("Finished calculating quality scores");
-
-    Ok(())
 }
