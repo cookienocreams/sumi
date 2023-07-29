@@ -5,12 +5,15 @@ use crate::{HashSet, HashMap};
 use crate::graph::find_true_umis;
 use crate::graph::deduplicate_bam;
 use crate::capture_target_files;
+use crate::sample::count_reads;
+use crate::quality::average_read_quality;
 use crate::File;
 use crate::BufReader;
 use crate::DataFrame;
 use crate::Series;
 use crate::CsvWriter;
 use crate::Error;
+use crate::csv_writer;
 use std::io::BufRead;
 use polars::prelude::{NamedFrom, SerWriter};
 use std::io;
@@ -81,6 +84,7 @@ pub fn is_sam_file_empty(sam_file: &str) -> Result<(), io::Error> {
 /// * `reference` - Path to the bowtie2 reference.
 /// * `num_threads` - Number of threads to use for alignment and conversion processes.
 /// * `include_unaligned_reads` - Boolean flag for whether to include unaligned reads or not.
+/// * `write_metrics` - Boolean flag for whether to write sample metrics to an output file or not.
 ///
 /// # Example
 /// ```
@@ -97,7 +101,8 @@ pub fn rna_discovery_calculation(
                                 reference: &str,
                                 num_threads: u8,
                                 include_unaligned_reads: bool,
-                                use_levenshtein: bool
+                                use_levenshtein: bool,
+                                write_metrics: bool
                             ) -> Result<Vec<String>, io::Error> {
     let num_of_fastqs = trimmed_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
@@ -116,6 +121,13 @@ pub fn rna_discovery_calculation(
     } else {
         "--no-unal"
     };
+
+    let mut writer: Option<csv_writer<File>> = None;
+
+    if write_metrics {
+        writer = Some(csv_writer::from_path("metrics.csv")?);
+        writer.as_mut().unwrap().write_record(&["sample", "read count", "quality score", reference_name])?;
+    }
 
     for (fastq_file, sample_name) in trimmed_fastqs.iter().zip(sample_names.iter()) {
         // Align to bowtie2 reference
@@ -192,7 +204,22 @@ pub fn rna_discovery_calculation(
         // Generate data for the specific RNAs captured
         let _  = generate_rna_counts(&format!("{}.{}.sam", sample_name, reference_name), sample_name, reference_name);
 
+        if write_metrics {
+            if let Ok((percent_alignment, count)) = align_fastq(fastq_file, sample_name, num_threads, reference_name) {
+                let avg_quality = average_read_quality(fastq_file).expect("Failed to calculate read quality");
+
+                writer
+                    .as_mut()
+                    .expect("Failed to write record")
+                    .write_record(&[sample_name, &count.to_string(), &avg_quality.to_string(), &percent_alignment.to_string()])?;
+            };
+        }
+
         progress_br.inc(1);
+    }
+
+    if write_metrics {
+        writer.expect("Failed to flush writer").flush()?;
     }
 
     let sam_files: Vec<String> = capture_target_files(&format!(".{}.sam", reference_name));
@@ -287,4 +314,63 @@ pub fn generate_rna_counts(input_sam_file: &str, sample_name: &String, reference
         .unwrap();
 
     Ok(())
+}
+
+/// Align fastq with specified reference RNA type.
+///
+/// Divide reads aligned with total reads to calculate percent alignment.  
+///
+/// /// # Arguments
+///
+/// * `input_fastq` - The path to the input fastq file. 
+/// * `sample_name` - The name of the sample.
+/// * `reference_name` - Path to the bowtie2 reference.
+/// * `num_threads` - Number of threads to use for alignment and conversion processes.
+/// 
+/// # Returns
+///
+/// The percent each fastq aligned to the specified RNA type.
+/// 
+/// # Example
+/// ```
+/// let reference_name = "miRNA"
+/// let percent_alignment = align_fastq("sample1.fastq", "sample1", 4, reference_name);
+/// println!("The fastq contains {} percent {}.", percent_alignment, reference_name);
+/// ```
+pub fn align_fastq(
+                    input_fastq: &str, 
+                    sample_name: &String,
+                    num_threads: u8,
+                    reference_name: &str,
+                ) -> Result<(f64, u64), Box<dyn std::error::Error>> {
+    // Get the number of reads in the input fastq
+    let count: u64 = count_reads(input_fastq)?.try_into().unwrap();
+
+    // Get the number of RNA alignments in the input fastq
+    let output_result = Command::new("samtools")
+        .args(&[
+            "view",
+            &format!("-@ {}", &num_threads),
+            "-c",
+            "-F 4",
+            &format!("{}.{}.sam", sample_name, reference_name),
+        ])
+        .output();
+
+    let output = output_result.expect("Failed to execute command");
+    let stdout = match String::from_utf8(output.stdout) {
+        Ok(v) => v,
+        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+    };
+
+    let parsed = match stdout.trim().parse::<f64>() {
+        Ok(v) => v,
+        Err(e) => { 
+            eprintln!("Failed to parse output to f64: {:?}", e);
+            0.0 // Set read count to zero if there's no output
+        },
+    };
+    let percent_alignment = 100.0 * parsed / count as f64;
+
+    Ok((percent_alignment, count))
 }
