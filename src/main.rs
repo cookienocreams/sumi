@@ -9,7 +9,6 @@ mod common;
 mod quality;
 
 use crate::sample::subsample_fastqs;
-use crate::quality::average_quality_scores;
 use crate::trim_adapters::trim_adapters;
 use crate::extract_umis::extract_umis;
 use crate::extract_umis::extract_umis_qiagen;
@@ -42,7 +41,6 @@ use std::error::Error;
 use niffler::get_reader;
 use csv::{Reader as csv_reader, Writer as csv_writer};
 use bio::alignment::distance::simd::*;
-use flate2::bufread::MultiGzDecoder;
 use glob::glob;
 
 lazy_static! {
@@ -67,11 +65,11 @@ lazy_static! {
 /// * `rng_seed` - The seed for the random number generator used during subsampling. If `None`, thread rng is used.
 /// * `subsample_to_lowest` - A flag indicating whether to subsample all FASTQ files to the size of the smallest one.
 /// * `qiagen` - A flag indicating whether the analysis is using Qiagen data.
-/// * `quality_score` - A flag indicating whether to include quality scores in an output file.
 /// * `thresholds` - A vector of values representing the thresholds for counting RNA species.
 /// * `include_unaligned_reads` - A flag indicating whether to include unaligned reads in the analysis.
 /// * `levenshtein_distance` - A flag indicating whether to compute the Levenshtein distance for the reads.
 /// * `umi_regex` - A regular expression used to match Unique Molecular Identifiers (UMIs) in the reads.
+/// * `write_metrics` - A flag indicating whether to include RNA alignment, quality scores, and read counts in an output file.
 #[derive(Debug)]
 struct Config {
     minimum_length: u8,
@@ -82,11 +80,11 @@ struct Config {
     rng_seed: Option<u64>,
     subsample_to_lowest: bool,
     qiagen: bool,
-    quality_score: bool,
     thresholds: Vec<usize>,
     include_unaligned_reads: bool,
     levenshtein_distance: bool,
     umi_regex: String,
+    write_metrics: bool,
 }
 
 impl Config {
@@ -121,7 +119,7 @@ impl Config {
         };
         let subsample_to_lowest = matches.is_present("subsample_to_lowest");
         let qiagen = matches.is_present("qiagen");
-        let quality_score = matches.is_present("quality_score");
+        let write_metrics = matches.is_present("write_metrics");
         let thresholds = match matches.values_of("thresholds") {
             Some(values) => values.map(|x| x.parse::<usize>().expect("Threshold must be a number.")).collect(),
             None => vec![1, 3, 5, 10],
@@ -139,11 +137,11 @@ impl Config {
             rng_seed,
             subsample_to_lowest,
             qiagen,
-            quality_score,
             thresholds,
             include_unaligned_reads,
             levenshtein_distance,
             umi_regex,
+            write_metrics,
         }
     }
 }
@@ -373,11 +371,12 @@ fn main() -> io::Result<()> {
                 .help("Set flag if Qiagen libraries are being analyzed.")
         )
         .arg(
-            Arg::with_name("quality_score")
-                .short('Q')
-                .long("quality_score")
+            Arg::with_name("write_metrics")
+                .short('M')
+                .long("write_metrics")
                 .takes_value(false)
-                .help("Set flag to write output file containing each fastq's average read quality.")
+                .help("Set flag to write output file containing each fastq's RNA alignment\
+                , average quality score, and read count in an output file.")
         )
         .arg(
             Arg::with_name("thresholds")
@@ -395,7 +394,7 @@ fn main() -> io::Result<()> {
                 .takes_value(false)
                 .help("Include unaligned reads in sam file post bowtie2 alignment. Can be \
                 used to obtain read lengths from all fragments or for further alignment \
-                 outside the program if used with the '--keep' flag. Note this can significantly \
+                 outside the program if used with the '--keep' flag. Note this can \
                  increase run time.")
         )
         .arg(
@@ -479,14 +478,6 @@ fn main() -> io::Result<()> {
         sample_library_type.insert(sample_name.clone(), library_type.to_string());
     }
 
-    // Check quality scores if desired
-    if config.quality_score {
-        match average_quality_scores(&fastq_files) {
-            Ok(_) => (),
-            Err(err) => println!("Error: {:?}", err),
-        }
-    };
-
     // Initialize trimmed fastqs vector
     let mut trimmed_fastqs: Vec<String> = vec![];
 
@@ -516,7 +507,8 @@ fn main() -> io::Result<()> {
                                                                 , sample_names.clone()
                                                                 , &config.alignment_reference, config.num_threads
                                                                 , config.include_unaligned_reads
-                                                                , config.levenshtein_distance) 
+                                                                , config.levenshtein_distance
+                                                                , config.write_metrics) 
                                                                 else {panic!("An error occurred during the RNA counting calculation")};
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));
