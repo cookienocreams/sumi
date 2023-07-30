@@ -5,8 +5,8 @@ use crate::{HashSet, HashMap};
 use crate::graph::find_true_umis;
 use crate::graph::deduplicate_bam;
 use crate::capture_target_files;
-use crate::sample::count_reads;
 use crate::quality::average_read_quality;
+use crate::get_read_counts;
 use crate::File;
 use crate::BufReader;
 use crate::DataFrame;
@@ -104,6 +104,17 @@ pub fn rna_discovery_calculation(
                                 use_levenshtein: bool,
                                 write_metrics: bool
                             ) -> Result<Vec<String>, io::Error> {
+    // Calculate the number of reads in each file if metrics are enabled
+    let read_counts = 
+    if write_metrics {
+        let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
+        match get_read_counts(fastq_files, &sample_names) {
+            Ok(read_counts) => read_counts,
+            Err(err) => panic!("An error occurred while getting read counts: {}", err),
+        }
+    } else {
+        HashMap::new() // Return an empty HashMap when write_metrics is not true
+    };
     let num_of_fastqs = trimmed_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
     
@@ -205,7 +216,7 @@ pub fn rna_discovery_calculation(
         let _  = generate_rna_counts(&format!("{}.{}.sam", sample_name, reference_name), sample_name, reference_name);
 
         if write_metrics {
-            if let Ok((percent_alignment, count)) = align_fastq(fastq_file, sample_name, num_threads, reference_name) {
+            if let Ok((percent_alignment, count)) = align_fastq(sample_name, num_threads, reference_name, read_counts[sample_name]) {
                 let avg_quality = average_read_quality(fastq_file).expect("Failed to calculate read quality");
 
                 writer
@@ -338,14 +349,11 @@ pub fn generate_rna_counts(input_sam_file: &str, sample_name: &String, reference
 /// println!("The fastq contains {} percent {}.", percent_alignment, reference_name);
 /// ```
 pub fn align_fastq(
-                    input_fastq: &str, 
                     sample_name: &String,
                     num_threads: u8,
                     reference_name: &str,
+                    count: u64
                 ) -> Result<(f64, u64), Box<dyn std::error::Error>> {
-    // Get the number of reads in the input fastq
-    let count: u64 = count_reads(input_fastq)?.try_into().unwrap();
-
     // Get the number of RNA alignments in the input fastq
     let output_result = Command::new("samtools")
         .args(&[
