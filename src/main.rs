@@ -8,6 +8,7 @@ mod lengths;
 mod common;
 mod quality;
 
+use crate::sample::count_reads;
 use crate::sample::subsample_fastqs;
 use crate::trim_adapters::trim_adapters;
 use crate::extract_umis::extract_umis;
@@ -249,6 +250,57 @@ fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bo
         };
 
     min_length
+}
+
+/// Find how many reads are in each fastq file.
+///
+/// # Arguments
+///
+/// * `input_fastqs` - A vector of strings where each string holds the name of a FASTQ file.
+/// * `sample_names` - Vector of sample names.
+///
+/// # Returns
+///
+/// This function will return a HashMap as a Result<HashMap<String, u64>, Box<dyn std::error::Error>>` 
+/// with the name of the fastq file as the key and the read count as the value. 
+/// If an error occurs while reading any of the files, the error will be returned instead.
+///
+/// # Examples
+///
+/// ```
+/// let files = vec!["sample1.fastq", "sample2.fastq", "sample3.fastq"];
+/// let sample_names = vec!["sample1", "sample2", "sample3"];
+/// 
+/// let read_counts = get_read_counts(files, sample_names)?;
+/// for (sample_name, count) in read_counts {
+///     println!("{} contains {} reads.", sample_name, count);
+/// }
+/// ```
+pub fn get_read_counts(input_fastqs: Vec<String>, sample_names: &Vec<String>) 
+                -> Result<HashMap<String, u64>, Box<dyn std::error::Error>> {
+    let num_of_fastqs = input_fastqs.len() as u64;
+    let progress_br = ProgressBar::new(num_of_fastqs);
+    
+    progress_br.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+                .expect("Progress bar error")
+            .progress_chars("#>-"),
+    );
+    progress_br.set_message("Counting the reads in each fastq files...");
+
+    let mut read_counts = HashMap::new();
+
+    for (file, name) in input_fastqs.iter().zip(sample_names) {
+        let count: u64 = count_reads(file)?.try_into().unwrap();
+        read_counts.insert(name.to_string(), count);
+
+        progress_br.inc(1);
+    };
+
+    progress_br.finish_with_message("Finished counting reads.");
+    
+    Ok(read_counts)
 }
 
 /// Remove all intermediate files.
