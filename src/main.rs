@@ -72,7 +72,7 @@ lazy_static! {
 /// * `umi_regex` - A regular expression used to match Unique Molecular Identifiers (UMIs) in the reads.
 /// * `write_metrics` - A flag indicating whether to include RNA alignment, quality scores, and read counts in an output file.
 #[derive(Debug)]
-struct Config {
+pub struct Config {
     minimum_length: u8,
     num_threads: u8,
     keep_intermediate_files: bool,
@@ -557,10 +557,7 @@ fn main() -> io::Result<()> {
     // Error correct UMIs in sample bam file
     let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs
                                                                 , sample_names.clone()
-                                                                , &config.alignment_reference, config.num_threads
-                                                                , config.include_unaligned_reads
-                                                                , config.levenshtein_distance
-                                                                , config.write_metrics) 
+                                                                , &config) 
                                                                 else {panic!("An error occurred during the RNA counting calculation")};
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));
