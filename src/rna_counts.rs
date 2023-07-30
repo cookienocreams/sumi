@@ -7,6 +7,7 @@ use crate::graph::deduplicate_bam;
 use crate::capture_target_files;
 use crate::quality::average_read_quality;
 use crate::get_read_counts;
+use crate::Config;
 use crate::File;
 use crate::BufReader;
 use crate::DataFrame;
@@ -81,32 +82,30 @@ pub fn is_sam_file_empty(sam_file: &str) -> Result<(), io::Error> {
 /// * `trimmed_fastqs` - Vector of paths to trimmed fastq files.
 /// * `library_type` - HashMap mapping sample names to their library types.
 /// * `sample_names` - Vector of sample names.
-/// * `reference` - Path to the bowtie2 reference.
-/// * `num_threads` - Number of threads to use for alignment and conversion processes.
-/// * `include_unaligned_reads` - Boolean flag for whether to include unaligned reads or not.
-/// * `write_metrics` - Boolean flag for whether to write sample metrics to an output file or not.
+/// * `config` - Struct containing user-specified analysis configurations, see below.
+///     * `reference` - Path to the bowtie2 reference.
+///     * `num_threads` - Number of threads to use for alignment and conversion processes.
+///     * `include_unaligned_reads` - Boolean flag for whether to include unaligned reads or not.
+///     * `write_metrics` - Boolean flag for whether to write sample metrics to an output file or not.
 ///
 /// # Example
 /// ```
 /// let trimmed_fastqs = vec!["sample1.cut.fastq", "sample2.cut.fastq", "sample3.cut.fastq"];
 /// let sample_names = vec!["sample1", "sample2", "sample3"];
+/// let config = Config::new(matches);
 ///
-/// rna_discovery_calculation(trimmed_fastqs, sample_names, "path/to/reference", 12, false);
+/// rna_discovery_calculation(trimmed_fastqs, sample_names, config);
 /// // This will generate "sample1.miRNA.sam", "sample2.miRNA.sam", "sample3.miRNA.sam" files
 /// // and will return a vector of SAM file paths.
 /// ```
 pub fn rna_discovery_calculation(
                                 trimmed_fastqs: Vec<String>, 
                                 sample_names: Vec<String>,
-                                reference: &str,
-                                num_threads: u8,
-                                include_unaligned_reads: bool,
-                                use_levenshtein: bool,
-                                write_metrics: bool
+                                config: &Config
                             ) -> Result<Vec<String>, io::Error> {
     // Calculate the number of reads in each file if metrics are enabled
     let read_counts = 
-    if write_metrics {
+    if config.write_metrics {
         let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
         match get_read_counts(fastq_files, &sample_names) {
             Ok(read_counts) => read_counts,
@@ -115,6 +114,7 @@ pub fn rna_discovery_calculation(
     } else {
         HashMap::new() // Return an empty HashMap when write_metrics is not true
     };
+    
     let num_of_fastqs = trimmed_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
     
@@ -124,18 +124,22 @@ pub fn rna_discovery_calculation(
                 .expect("Progress bar error")
             .progress_chars("#>-"),
     );
-    let reference_name = Path::new(reference).file_name().unwrap().to_str().unwrap();
+
+    // Set analysis reference, i.e., RNA type name, based on the user provided reference name
+    let reference_name = Path::new(&config.alignment_reference).file_name().unwrap().to_str().unwrap();
     progress_br.set_message(format!("Calculating the number of {} present...", reference_name));
 
-    let unaligned = if include_unaligned_reads {
+    // Set bowtie2 flag to keep unaligned reads
+    let unaligned = 
+    if config.include_unaligned_reads {
         ""
     } else {
         "--no-unal"
     };
 
+    // Create file for writing metrics if necessary
     let mut writer: Option<csv_writer<File>> = None;
-
-    if write_metrics {
+    if config.write_metrics {
         writer = Some(csv_writer::from_path("metrics.csv")?);
         writer.as_mut().unwrap().write_record(&["sample", "read count", "quality score", reference_name])?;
     }
@@ -146,10 +150,10 @@ pub fn rna_discovery_calculation(
         let _ = Command::new("bowtie2")
             .args(&["--norc"
                     , "--threads"
-                    , &num_threads.to_string()
+                    , &config.num_threads.to_string()
                     , unaligned
                     , "-x"
-                    , reference
+                    , &config.alignment_reference
                     , "-U"
                     , fastq_file
                     , "-S"
@@ -177,7 +181,7 @@ pub fn rna_discovery_calculation(
         // Can use SAM file for deduplication, but a BAM file uses less memory
         let _ = Command::new("samtools")
             .args(&["view"
-                    , &format!("-@ {}", &num_threads).to_string()
+                    , &format!("-@ {}", &config.num_threads).to_string()
                     , "--with-header"
                     , "-o"
                     , &format!("{}.UMI.bam", sample_name)
@@ -187,7 +191,7 @@ pub fn rna_discovery_calculation(
             .expect("Failed to run samtools to convert SAM to BAM");
 
         // Error correct UMIs in sample bam file
-        let repr_umis: HashSet<Vec<u8>> = find_true_umis(&format!("{}.UMI.bam", sample_name), use_levenshtein)?;
+        let repr_umis: HashSet<Vec<u8>> = find_true_umis(&format!("{}.UMI.bam", sample_name), config.levenshtein_distance)?;
 
         // Deduplicate mapped bam file
         let deduplication_result = deduplicate_bam(&format!("{}.UMI.bam", sample_name)
@@ -203,7 +207,7 @@ pub fn rna_discovery_calculation(
         // Convert deduplicated bam file to a sam file
         let _ = Command::new("samtools")
             .args(&["view"
-                    , &format!("-@ {}", &num_threads).to_string()
+                    , &format!("-@ {}", &config.num_threads).to_string()
                     , "--with-header"
                     , "-o"
                     , &format!("{}.{}.sam", sample_name, reference_name)
@@ -215,8 +219,19 @@ pub fn rna_discovery_calculation(
         // Generate data for the specific RNAs captured
         let _  = generate_rna_counts(&format!("{}.{}.sam", sample_name, reference_name), sample_name, reference_name);
 
-        if write_metrics {
-            if let Ok((percent_alignment, count)) = align_fastq(sample_name, num_threads, reference_name, read_counts[sample_name]) {
+        // Set correct read count depending on if subsampling was performed
+        if config.write_metrics {
+            let count: u64;
+            if let Some(n_reads) = config.subsample_fastqs {
+                count = n_reads as u64 // User choose the number of reads to subsample to
+            } else if config.subsample_to_lowest {
+                count = *read_counts.values().min().unwrap() // Count equals fastq with lowest read count
+            } else {
+                count = read_counts[sample_name] // Total read count
+            };
+
+            // Calculate the percentage of aligned reads
+            if let Ok(percent_alignment) = get_percent_alignment(sample_name, config.num_threads, reference_name, count) {
                 let avg_quality = average_read_quality(fastq_file).expect("Failed to calculate read quality");
 
                 writer
@@ -229,7 +244,7 @@ pub fn rna_discovery_calculation(
         progress_br.inc(1);
     }
 
-    if write_metrics {
+    if config.write_metrics {
         writer.expect("Failed to flush writer").flush()?;
     }
 
@@ -262,6 +277,15 @@ pub fn rna_discovery_calculation(
 /// * `input_sam_file`: The path to the input SAM file.
 /// * `sample_name`: The name of the sample.
 /// * `reference_name`: The name of the bowtie2 reference.
+/// # Example
+/// ```
+/// let sam_file = "sample1.sam";
+/// let reference_name = "miRNA"
+/// 
+/// let _ = generate_rna_counts(sam_file, "sample1", reference_name);
+/// // This will generate a file "sample1_miRNA_counts.csv" with each miRNA found and
+/// // their counts and CPM.
+/// ```
 pub fn generate_rna_counts(input_sam_file: &str, sample_name: &String, reference_name: &str) 
     -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(input_sam_file)?;
@@ -327,13 +351,13 @@ pub fn generate_rna_counts(input_sam_file: &str, sample_name: &String, reference
     Ok(())
 }
 
-/// Align fastq with specified reference RNA type.
+/// Get the percentage of reads that aligned to the specified reference RNA type.
 ///
 /// Divide reads aligned with total reads to calculate percent alignment.  
 ///
 /// /// # Arguments
 ///
-/// * `input_fastq` - The path to the input fastq file. 
+/// * `count` - The total number of reads analyzed. 
 /// * `sample_name` - The name of the sample.
 /// * `reference_name` - Path to the bowtie2 reference.
 /// * `num_threads` - Number of threads to use for alignment and conversion processes.
@@ -345,15 +369,17 @@ pub fn generate_rna_counts(input_sam_file: &str, sample_name: &String, reference
 /// # Example
 /// ```
 /// let reference_name = "miRNA"
-/// let percent_alignment = align_fastq("sample1.fastq", "sample1", 4, reference_name);
+/// let count = 12345678
+/// 
+/// let percent_alignment = get_percent_alignment("sample1", 4, reference_name, count);
 /// println!("The fastq contains {} percent {}.", percent_alignment, reference_name);
 /// ```
-pub fn align_fastq(
+pub fn get_percent_alignment(
                     sample_name: &String,
                     num_threads: u8,
                     reference_name: &str,
                     count: u64
-                ) -> Result<(f64, u64), Box<dyn std::error::Error>> {
+                ) -> Result<f64, Box<dyn std::error::Error>> {
     // Get the number of RNA alignments in the input fastq
     let output_result = Command::new("samtools")
         .args(&[
@@ -380,5 +406,5 @@ pub fn align_fastq(
     };
     let percent_alignment = 100.0 * parsed / count as f64;
 
-    Ok((percent_alignment, count))
+    Ok(percent_alignment)
 }
