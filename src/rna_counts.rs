@@ -223,7 +223,7 @@ pub fn rna_discovery_calculation(
         if config.write_metrics {
             let count: u64;
             if let Some(n_reads) = config.subsample_fastqs {
-                count = n_reads as u64 // User choose the number of reads to subsample to
+                count = n_reads as u64 // User chose the number of reads to subsample to
             } else if config.subsample_to_lowest {
                 count = *read_counts.values().min().unwrap() // Count equals fastq with lowest read count
             } else {
