@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["average_read_quality","get_q_score_probability","mean"]};
