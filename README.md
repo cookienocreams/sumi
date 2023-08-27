@@ -2,6 +2,7 @@
 A simple analysis for small RNA libraries with UMIs
 
 [![Rust](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml)
+[![Continuous integration](https://github.com/cookienocreams/sumi/actions/workflows/CI.yaml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/CI.yaml)
 
 ## Script dependencies
 - bowtie2
