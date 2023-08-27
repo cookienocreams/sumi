@@ -1,8 +1,15 @@
 # sumi: A simple small RNA umi analysis
-A simple analysis for small RNA libraries with UMIs
-
 [![Rust](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml)
 [![Continuous integration](https://github.com/cookienocreams/sumi/actions/workflows/CI.yaml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/CI.yaml)
+
+A simple analysis for small RNA libraries with UMIs
+
+
+It performs UMI error correction and deduplication using a directional graph algorithm. This script 
+implements a slightly modified directional graph algorithm that allows for a Hamming Distance of 1 
+between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq and 
+small RNA-seq using unique molecular identifiers. https://doi.org/10.1186/s12864-018-4933-1. 
+It uses a five fold threshold, while the original algorithm uses a two fold count threshold.
 
 ## Script dependencies
 - bowtie2
