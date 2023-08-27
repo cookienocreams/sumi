@@ -1,6 +1,8 @@
 # sumi: A simple small RNA umi analysis
 A simple analysis for small RNA libraries with UMIs
 
+[![Rust](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml)
+
 ## Script dependencies
 - bowtie2
 - samtools
