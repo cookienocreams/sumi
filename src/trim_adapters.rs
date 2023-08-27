@@ -1,19 +1,15 @@
-use crate::HashMap;
-use crate::ProgressBar;
-use crate::ProgressStyle;
-use crate::Command;
-use crate::Path;
-use crate::Regex;
 use crate::extract_umis;
 use crate::extract_umis_qiagen;
+use crate::Command;
+use crate::HashMap;
+use crate::Path;
+use crate::ProgressBar;
+use crate::ProgressStyle;
+use crate::Regex;
 
 /// Trim the 3' adapter from each read.
 ///
-/// UMI Read 1 Setup:
-/// `5' Adapter - UMI - Insert - 3' Adapter`
-/// `AGATCGGAAGAGCGTCGTGTAGGGAAAGANNNNNNNNNNNN - TGTCAGTTTGTCAAATACCCCA - TGGAATTCTCGGGTGCCAAGG`
-///
-/// The bases on the 3' end are also quality trimmed if their quality score is below 20. Reads 
+/// The bases on the 3' end are also quality trimmed if their quality score is below 20. Reads
 /// shorter than 16 bases or that weren't trimmed are discarded. UMIs are extracted from each
 ///  sequence and appended to the read name.
 ///
@@ -37,14 +33,15 @@ use crate::extract_umis_qiagen;
 ///
 /// # Returns
 /// * A vector of strings containing the names of the FASTQ files after trimming.
-pub fn trim_adapters(fastqs: Vec<String>
-                , library_type: HashMap<String, String>
-                , minimum_length: u8
-                , umi_regex: &Regex)
-                -> Vec<String> {
+pub fn trim_adapters(
+    fastqs: Vec<String>,
+    library_type: HashMap<String, String>,
+    minimum_length: u8,
+    umi_regex: &Regex,
+) -> Vec<String> {
     let num_of_fastqs = fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
@@ -55,12 +52,12 @@ pub fn trim_adapters(fastqs: Vec<String>
 
     let mut trimmed_fastq_files: Vec<String> = vec![];
     for fastq_file in fastqs.iter() {
-        let sample_name = fastq_file.split("_").next().unwrap();
+        let sample_name = fastq_file.split('_').next().unwrap();
 
         // Create the strings before passing them to the vec
         let min_length_string = minimum_length.to_string();
         let too_short_output = format!("{}.short.fastq", sample_name);
-    
+
         // Set cutadapt args to remove untrimmed reads and require a quality score > 20
         let mut cutadapt_args: Vec<&str> = vec![
             "--cores=0",
@@ -69,27 +66,25 @@ pub fn trim_adapters(fastqs: Vec<String>
             "20",
             "--adapter",
         ];
-    
+
         // Set library type being analyzed
         match library_type.get(&sample_name.to_string()).unwrap().as_str() {
             "UMI" => {
                 let output_file_name = format!("{}.unprocessed.cut.fastq", sample_name);
                 let adapter: &str = "TGGAATTCTCGGGTGCCAAGG";
                 cutadapt_args.extend([
-                    adapter
-                    , "--output"
-                    , &output_file_name
-                    , "--minimum-length"
-                    , &min_length_string
-                    , "--too-short-output"
-                    , &too_short_output
-                    , fastq_file
+                    adapter,
+                    "--output",
+                    &output_file_name,
+                    "--minimum-length",
+                    &min_length_string,
+                    "--too-short-output",
+                    &too_short_output,
+                    fastq_file,
                 ]);
 
                 // Call cutadapt
-                let output = Command::new("cutadapt")
-                    .args(&cutadapt_args)
-                    .output();
+                let output = Command::new("cutadapt").args(&cutadapt_args).output();
 
                 match output {
                     Ok(_) => (),
@@ -119,20 +114,18 @@ pub fn trim_adapters(fastqs: Vec<String>
                 let output_file_name = format!("{}.cut.fastq", sample_name);
 
                 cutadapt_args.extend([
-                    adapter
-                    , "--output"
-                    , &output_file_name
-                    , "--minimum-length"
-                    , &min_length_string
-                    , "--too-short-output"
-                    , &too_short_output
-                    , &fastq
+                    adapter,
+                    "--output",
+                    &output_file_name,
+                    "--minimum-length",
+                    &min_length_string,
+                    "--too-short-output",
+                    &too_short_output,
+                    &fastq,
                 ]);
 
-                let output = Command::new("cutadapt")
-                    .args(&cutadapt_args)
-                    .output();
-                
+                let output = Command::new("cutadapt").args(&cutadapt_args).output();
+
                 match output {
                     Ok(_) => (),
                     Err(ref error) => eprintln!("Error running cutadapt: {:?}", error),
@@ -141,7 +134,7 @@ pub fn trim_adapters(fastqs: Vec<String>
             _ => {
                 panic!("Unknown library type.");
             }
-        }        
+        }
 
         let output_filename = format!("{}.cut.fastq", sample_name);
         if Path::new(&output_filename).exists() {

@@ -1,13 +1,13 @@
 use crate::get_reader;
 use crate::BufReader;
 use crate::BufWriter;
+use crate::File;
 use crate::HashMap;
+use crate::Path;
 use crate::ProgressBar;
 use crate::ProgressStyle;
-use crate::Path;
-use crate::File;
-use std::io::{BufRead, Write};
 use rand::{Rng, SeedableRng};
+use std::io::{BufRead, Write};
 
 /// Count the number of reads in a FASTQ file.
 ///
@@ -17,8 +17,8 @@ use rand::{Rng, SeedableRng};
 ///
 /// # Returns
 ///
-/// This function will return the number of reads in the input FASTQ file as a `Result<u64, 
-/// Box<dyn std::error::Error>>`. If an error occurs while reading the file, the error 
+/// This function will return the number of reads in the input FASTQ file as a `Result<u64,
+/// Box<dyn std::error::Error>>`. If an error occurs while reading the file, the error
 /// will be returned instead.
 ///
 /// # Examples
@@ -33,7 +33,7 @@ pub fn count_reads(input_fastq: &str) -> Result<u64, Box<dyn std::error::Error>>
 
     let line_count = BufReader::new(&mut reader)
         .lines()
-        .filter_map(Result::ok)
+        .map_while(Result::ok)
         .count();
 
     Ok((line_count / 4) as u64)
@@ -47,8 +47,8 @@ pub fn count_reads(input_fastq: &str) -> Result<u64, Box<dyn std::error::Error>>
 ///
 /// # Returns
 ///
-/// This function will return a tuple as a `Result<(String, u64), Box<dyn std::error::Error>>` 
-/// with the name of the file with the fewest reads and the count of those reads. 
+/// This function will return a tuple as a `Result<(String, u64), Box<dyn std::error::Error>>`
+/// with the name of the file with the fewest reads and the count of those reads.
 /// If an error occurs while reading any of the files, the error will be returned instead.
 ///
 /// # Examples
@@ -58,11 +58,13 @@ pub fn count_reads(input_fastq: &str) -> Result<u64, Box<dyn std::error::Error>>
 /// let (file, count) = find_fastq_with_fewest_reads(files)?;
 /// println!("The file with the fewest reads is {} with {} reads.", file, count);
 /// ```
-fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashMap<String, usize>) 
-                                -> Result<(String, u64), Box<dyn std::error::Error>> {
+fn find_fastq_with_fewest_reads(
+    input_fastqs: &[String],
+    read_counts: &mut HashMap<String, usize>,
+) -> Result<(String, u64), Box<dyn std::error::Error>> {
     let num_of_fastqs = input_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
@@ -85,7 +87,7 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
                 count
             }
         };
-        
+
         if count < min_reads as usize {
             min_reads = count as u64;
             min_index = index;
@@ -93,7 +95,7 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
 
         progress_br.inc(1);
     }
-    
+
     progress_br.finish_with_message("Finished counting the number of reads in the fastq files");
 
     Ok((input_fastqs[min_index].clone(), min_reads))
@@ -110,22 +112,25 @@ fn find_fastq_with_fewest_reads(input_fastqs: &[String], read_counts: &mut HashM
 ///
 /// # Description
 ///
-/// This function randomly selects a subset of reads from an input FASTQ file using 
-/// Algorithm R for reservoir sampling. The number of reads selected is determined by 
-/// the `target_read_count` argument. The input file is read only once, and the selection 
-/// process does not require knowledge of the total number of reads in the input file. 
+/// This function randomly selects a subset of reads from an input FASTQ file using
+/// Algorithm R for reservoir sampling. The number of reads selected is determined by
+/// the `target_read_count` argument. The input file is read only once, and the selection
+/// process does not require knowledge of the total number of reads in the input file.
 ///
 /// # Returns
 ///
-/// This function returns a Result containing a vector of vectors of Strings. Each vector 
-/// of Strings represents a selected read from the input file and its corresponding line 
+/// This function returns a Result containing a vector of vectors of Strings. Each vector
+/// of Strings represents a selected read from the input file and its corresponding line
 /// in the FASTQ file.
 ///
 /// # Errors
 ///
 /// This function will return an error if there is a problem reading the input file.
-fn subsample_file(input_file: &str, target_read_count: u32, rng_seed: Option<u64>) 
-    -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
+fn subsample_file(
+    input_file: &str,
+    target_read_count: u32,
+    rng_seed: Option<u64>,
+) -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
     // Create a random number generator
     let mut rng = match rng_seed {
         Some(rng) => rand_chacha::ChaCha8Rng::seed_from_u64(rng),
@@ -147,17 +152,15 @@ fn subsample_file(input_file: &str, target_read_count: u32, rng_seed: Option<u64
     // While there are still lines in the file...
     loop {
         // Read one read
-        let read: Vec<String> = read_lines.by_ref().take(4)
-            .filter_map(Result::ok)
-            .collect();
+        let read: Vec<String> = read_lines.by_ref().take(4).filter_map(Result::ok).collect();
 
         // If less than 4 lines were read, break the loop
         if read.len() < 4 {
             break;
         }
-        
+
         n += 1; // Increment the total read count
-        
+
         if n <= target_read_count {
             // If we have not yet reached the target number of reads, just store the read in the reservoir
             reservoir.push(read);
@@ -180,24 +183,26 @@ fn subsample_file(input_file: &str, target_read_count: u32, rng_seed: Option<u64
 /// # Arguments
 ///
 /// * `output_file` - A string reference that holds the name of the output FASTQ file.
-/// * `reservoir` - A vector of vectors of Strings. Each vector of Strings represents a 
+/// * `reservoir` - A vector of vectors of Strings. Each vector of Strings represents a
 /// selected read and its corresponding line in the FASTQ file.
 ///
 /// # Description
 ///
-/// This function writes the reads selected by the `subsample_file` function to an output FASTQ file. 
+/// This function writes the reads selected by the `subsample_file` function to an output FASTQ file.
 /// Each read is written as a block of four lines, corresponding to the standard FASTQ format.
 ///
 /// # Returns
 ///
-/// This function returns a Result type indicating whether the writing was successful. If the writing is successful, 
+/// This function returns a Result type indicating whether the writing was successful. If the writing is successful,
 /// the function returns Ok(()). If there is a problem writing to the file, the function returns an error.
 ///
 /// # Errors
 ///
 /// This function will return an error if there is a problem writing to the output file.
-fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(), Box<dyn std::error::Error>> {
-
+fn write_to_output(
+    output_file: &str,
+    reservoir: Vec<Vec<String>>,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Write the selected reads to the output FASTQ file
     let file = File::create(output_file)?;
     let mut writer = BufWriter::new(file);
@@ -224,13 +229,13 @@ fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(),
 /// # Description
 ///
 /// This function randomly selects a subset of reads from each input FASTQ file and writes them
-/// to corresponding output FASTQ files, with the names based on `sample_names` followed by a `_subsample.fastq` suffix. 
-/// The number of reads selected is determined by the `target_read_count` argument. 
-/// If `target_read_count` is None, the function selects a number equal to the smallest number 
-/// of reads across all input files. This function uses Algorithm R for reservoir sampling to select a random 
-/// subset of reads from the input file. The input file is read only once, and the selection process does 
-/// not require knowledge of the total number of reads in the input file. Therefore, this function is 
-/// more memory-efficient and can handle larger files than methods that require reading the entire file 
+/// to corresponding output FASTQ files, with the names based on `sample_names` followed by a `_subsample.fastq` suffix.
+/// The number of reads selected is determined by the `target_read_count` argument.
+/// If `target_read_count` is None, the function selects a number equal to the smallest number
+/// of reads across all input files. This function uses Algorithm R for reservoir sampling to select a random
+/// subset of reads from the input file. The input file is read only once, and the selection process does
+/// not require knowledge of the total number of reads in the input file. Therefore, this function is
+/// more memory-efficient and can handle larger files than methods that require reading the entire file
 /// into memory.
 ///
 /// Algorithm R works by filling the reservoir with the first `k` items from the input. Each remaining item is then given
@@ -240,7 +245,7 @@ fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(),
 ///
 /// # Returns
 ///
-/// This function does not return a value. It writes the selected reads to the output FASTQ files, 
+/// This function does not return a value. It writes the selected reads to the output FASTQ files,
 /// each named based on corresponding `sample_name` with a `_subsample.fastq` suffix.
 ///
 /// # Example
@@ -250,11 +255,12 @@ fn write_to_output(output_file: &str, reservoir: Vec<Vec<String>>) -> Result<(),
 /// let sample_names = vec!["sample1", "sample2"];
 /// subsample_fastqs(input_fastqs, sample_names, Some(1000)).expect("Failed to subsample fastqs");
 /// ```
-pub fn subsample_fastqs(input_fastqs: Vec<String>
-                        , sample_names: Vec<String>
-                        , target_read_count: Option<u32>
-                        , rng_seed: Option<u64>) 
-                    -> Result<(), Box<dyn std::error::Error>> {
+pub fn subsample_fastqs(
+    input_fastqs: Vec<String>,
+    sample_names: Vec<String>,
+    target_read_count: Option<u32>,
+    rng_seed: Option<u64>,
+) -> Result<(), Box<dyn std::error::Error>> {
     // Add a HashMap to store the read counts
     let mut read_counts: HashMap<String, usize> = HashMap::new();
 
@@ -271,17 +277,28 @@ pub fn subsample_fastqs(input_fastqs: Vec<String>
     if !smallest_fastq_file.is_empty() {
         // Copy the smallest fastq file with a new name to match the processed files
         let smallest_fastq_file_path = Path::new(&smallest_fastq_file);
-        let smallest_fastq_file_stem = smallest_fastq_file_path.file_stem().unwrap().to_str().unwrap();
-        let smallest_fastq_file_extension = smallest_fastq_file_path.extension().unwrap().to_str().unwrap();
+        let smallest_fastq_file_stem = smallest_fastq_file_path
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap();
+        let smallest_fastq_file_extension = smallest_fastq_file_path
+            .extension()
+            .unwrap()
+            .to_str()
+            .unwrap();
 
-        let smallest_fastq_file_copy = format!("{}_subsample.{}", smallest_fastq_file_stem, smallest_fastq_file_extension);
+        let smallest_fastq_file_copy = format!(
+            "{}_subsample.{}",
+            smallest_fastq_file_stem, smallest_fastq_file_extension
+        );
         std::fs::copy(&smallest_fastq_file, &smallest_fastq_file_copy)?;
     }
 
     // Create a progress bar
     let num_of_fastqs = input_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
@@ -289,16 +306,16 @@ pub fn subsample_fastqs(input_fastqs: Vec<String>
             .progress_chars("#>-"),
     );
     progress_br.set_message("Subsampling fastq files...");
-    
+
     // Subsample fastq files
     for (fastq, sample_name) in input_fastqs.iter().zip(sample_names.iter()) {
         let reservoir = subsample_file(fastq, target_read_count, rng_seed)?;
         let output_filename = format!("{}_subsample.fastq", sample_name);
-        let _ = write_to_output(&output_filename, reservoir)?;
+        write_to_output(&output_filename, reservoir)?;
 
         progress_br.inc(1);
     }
-    
+
     progress_br.finish_with_message("Finished subsampling fastq files");
 
     Ok(())

@@ -1,13 +1,13 @@
-use crate::ProgressBar;
-use crate::ProgressStyle;
-use crate::Path;
-use crate::fs::OpenOptions;
-use crate::Error;
-use crate::HashMap;
 use crate::csv_reader;
 use crate::csv_writer;
+use crate::fs::OpenOptions;
 use crate::BufReader;
+use crate::Error;
 use crate::File;
+use crate::HashMap;
+use crate::Path;
+use crate::ProgressBar;
+use crate::ProgressStyle;
 use std::io::Write;
 
 /// Process a list of CSV files containing RNA counts and create output CSV files
@@ -42,11 +42,15 @@ use std::io::Write;
 /// let thresholds = vec![1, 3, 5, 10];
 /// threshold_count(file_names, thresholds).unwrap();
 /// ```
-pub fn threshold_count(file_names: Vec<String>, thresholds: Vec<usize>, sample_names: Vec<String>, reference: &str) 
-    -> Result<(), Box<dyn Error>> {
+pub fn threshold_count(
+    file_names: Vec<String>,
+    thresholds: Vec<usize>,
+    sample_names: Vec<String>,
+    reference: &str,
+) -> Result<(), Box<dyn Error>> {
     let num_of_files = file_names.len() as u64;
     let progress_br = ProgressBar::new(num_of_files);
-        
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
@@ -54,11 +58,13 @@ pub fn threshold_count(file_names: Vec<String>, thresholds: Vec<usize>, sample_n
             .progress_chars("#>-"),
     );
     let reference_name = Path::new(reference).file_name().unwrap().to_str().unwrap();
-    progress_br.set_message(format!("Calculating {} threshold counts...", reference_name));
+    progress_br.set_message(format!(
+        "Calculating {} threshold counts...",
+        reference_name
+    ));
 
     // Loop over all files
     for (file_name, sample_name) in file_names.iter().zip(sample_names.iter()) {
-
         let mut output = OpenOptions::new()
             .write(true)
             .create(true)
@@ -70,7 +76,7 @@ pub fn threshold_count(file_names: Vec<String>, thresholds: Vec<usize>, sample_n
         for threshold in &thresholds {
             let mut rdr = csv::ReaderBuilder::new()
                 .delimiter(b',')
-                .from_path(&file_name)?;
+                .from_path(file_name)?;
 
             let mut above_threshold_count = 0;
 
@@ -82,7 +88,7 @@ pub fn threshold_count(file_names: Vec<String>, thresholds: Vec<usize>, sample_n
                 }
             }
 
-        writeln!(output, "Threshold {},{}", threshold, above_threshold_count)?;
+            writeln!(output, "Threshold {},{}", threshold, above_threshold_count)?;
         }
 
         progress_br.inc(1);
@@ -110,8 +116,11 @@ pub fn threshold_count(file_names: Vec<String>, thresholds: Vec<usize>, sample_n
 /// - There is a problem reading an input CSV file.
 /// - There is a problem writing to the output CSV file.
 /// - A record in an input CSV file cannot be deserialized into a tuple of a string and a number.
-pub fn combine_threshold_counts(input_files: Vec<String>, output_file: String, sample_names: Vec<String>) 
-    -> Result<(), Box<dyn Error>> {
+pub fn combine_threshold_counts(
+    input_files: Vec<String>,
+    output_file: String,
+    sample_names: Vec<String>,
+) -> Result<(), Box<dyn Error>> {
     // Create a HashMap to hold the count data. The outer key is the threshold, and the value is another HashMap
     // where the key is the sample name and the value is the count.
     let mut data: HashMap<usize, HashMap<&String, usize>> = HashMap::new();
@@ -124,7 +133,10 @@ pub fn combine_threshold_counts(input_files: Vec<String>, output_file: String, s
             let record = result?;
             let parts: Vec<&str> = record[0].split_whitespace().collect();
             if parts.len() < 2 {
-                return Err(From::from(format!("Malformed threshold record: {:?}", record)));
+                return Err(From::from(format!(
+                    "Malformed threshold record: {:?}",
+                    record
+                )));
             }
             let threshold: usize = parts[1].parse()?;
             let count: usize = record[1].parse()?;
@@ -157,7 +169,10 @@ pub fn combine_threshold_counts(input_files: Vec<String>, output_file: String, s
 
         // For each sample, look up the count for the current threshold and add it to the row
         for sample_name in &sample_names {
-            let count = data.get(&threshold).and_then(|x| x.get(sample_name)).unwrap_or(&0);
+            let count = data
+                .get(&threshold)
+                .and_then(|x| x.get(sample_name))
+                .unwrap_or(&0);
             row.push(count.to_string());
         }
         writer.write_record(&row)?;

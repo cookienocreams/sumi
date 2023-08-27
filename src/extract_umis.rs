@@ -1,15 +1,15 @@
-use bio::io::fastq::{Reader, Writer, Record};
-use std::io::BufReader;
+use crate::is_gzipped;
+use crate::Read;
+use crate::Regex;
+use crate::DUAL_INDEX_REGEX;
+use crate::SINGLE_INDEX_REGEX;
+use crate::UMI_REGEX_QIAGEN;
+use bio::io::fastq::{Reader, Record, Writer};
 use flate2::bufread::MultiGzDecoder;
 use std::fs::File;
-use crate::Read;
-use crate::SINGLE_INDEX_REGEX;
-use crate::DUAL_INDEX_REGEX;
-use crate::UMI_REGEX_QIAGEN;
-use crate::is_gzipped;
-use crate::Regex;
+use std::io::BufReader;
 
-/// Extracts Unique Molecular Identifiers (UMIs) from a given fastq file and writes the 
+/// Extracts Unique Molecular Identifiers (UMIs) from a given fastq file and writes the
 /// UMI-trimmed sequences to a new fastq file. This function is flexible in the definition of
 /// the UMI, as the user can provide a regular expression with multiple capture groups to specify
 /// the location and format of the UMI within the sequence.
@@ -29,8 +29,11 @@ use crate::Regex;
 /// extract_umis("sample1", "_", &umi_regex);
 /// // This will create an output file named "sample1.cut.fastq" with UMI-trimmed sequences.
 /// ```
-pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) -> Result<(), Box<dyn std::error::Error>> {
-
+pub fn extract_umis(
+    sample_name: &str,
+    umi_delineator: &str,
+    umi_regex: &Regex,
+) -> Result<(), Box<dyn std::error::Error>> {
     let filename = format!("{}.{}.{}", sample_name, "unprocessed.cut", "fastq");
 
     // Attempt to open the input file
@@ -43,10 +46,9 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) 
 
         // Convert the sequence to a string
         let read_sequence = std::str::from_utf8(record.seq())?;
-        
+
         // Check if the sequence matches the UMI regex
         if let Some(captures) = umi_regex.captures(read_sequence) {
-            
             let umi_str: String;
             let umi_start: usize;
             let umi_len: usize;
@@ -79,12 +81,13 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) 
                 Some(matched) => matched.as_str(),
                 None => match SINGLE_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
                     Some(matched) => matched.as_str(),
-                    None => panic!("Could not find index"),  
+                    None => panic!("Could not find index"),
                 },
             };
 
             // Create a new description with the UMI appended
-            let read_info_with_umi = format!("{}{}{} {}", record.id(), umi_delineator, umi_str, indexes);
+            let read_info_with_umi =
+                format!("{}{}{} {}", record.id(), umi_delineator, umi_str, indexes);
 
             // Check if the UMI is at a valid position within the sequence and quality strings
             if umi_start <= read_sequence.len() && umi_start <= record.qual().len() {
@@ -94,9 +97,9 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) 
 
                 // Create a new record with the UMI-trimmed sequence and quality
                 let new_record = Record::with_attrs(
-                    &read_info_with_umi, 
-                    None, 
-                    umi_trimmed_sequence, 
+                    &read_info_with_umi,
+                    None,
+                    umi_trimmed_sequence,
                     trimmed_quality,
                 );
 
@@ -107,17 +110,17 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) 
             }
         }
     }
-    
+
     // Return Ok if everything went well
     Ok(())
 }
 
-/// Extracts Unique Molecular Identifiers (UMIs) from a given gzipped fastq file and writes the 
-/// UMI-trimmed sequences to a new uncompressed fastq file. The UMIs are searched using a regex 
-/// pattern related to known adapter sequences and are appended to the 3' adapter. 
+/// Extracts Unique Molecular Identifiers (UMIs) from a given gzipped fastq file and writes the
+/// UMI-trimmed sequences to a new uncompressed fastq file. The UMIs are searched using a regex
+/// pattern related to known adapter sequences and are appended to the 3' adapter.
 ///
 /// # Arguments
-/// * `input_fastq` - The path to the input gzipped fastq file. 
+/// * `input_fastq` - The path to the input gzipped fastq file.
 /// * `sample_name` - The name of the sample.
 /// * `umi_delineator` - Delimiter used between appended UMI and read name. The
 /// default is "_" as is used in UMI-tools.
@@ -128,12 +131,15 @@ pub fn extract_umis(sample_name: &str, umi_delineator: &str, umi_regex: &Regex) 
 /// // This will create an output file named "sample1.processed.fastq" with UMI-trimmed sequences.
 /// ```
 ///
-/// Note: The UMI is extracted using the regex pattern "AACTGTAGGCACCATCAAT(.{12})AGATCGGAAG" 
-/// where the UMI is the 12 bases following the adapter sequence "AACTGTAGGCACCATCAAT" and before 
-/// the sequence "AGATCGGAAG". This is different from the previous version where UMIs were 
+/// Note: The UMI is extracted using the regex pattern "AACTGTAGGCACCATCAAT(.{12})AGATCGGAAG"
+/// where the UMI is the 12 bases following the adapter sequence "AACTGTAGGCACCATCAAT" and before
+/// the sequence "AGATCGGAAG". This is different from the previous version where UMIs were
 /// expected to be the first 12 characters of the sequence.
-pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator: &str) -> std::io::Result<()> {
-    
+pub fn extract_umis_qiagen(
+    input_fastq: &str,
+    sample_name: &str,
+    umi_delineator: &str,
+) -> std::io::Result<()> {
     let input_file = File::open(input_fastq)?;
 
     // Check if the file is gzipped or not
@@ -151,7 +157,7 @@ pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator:
             Err(err) => {
                 eprintln!("Error reading record: {}", err);
                 continue;
-            },
+            }
         };
 
         let read_sequence = match String::from_utf8(record.seq().to_vec()) {
@@ -159,9 +165,9 @@ pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator:
             Err(err) => {
                 eprintln!("Error decoding sequence as UTF-8: {}", err);
                 continue;
-            },
+            }
         };
-        
+
         if let Some(captures) = UMI_REGEX_QIAGEN.captures(&read_sequence) {
             if let Some(umi_match) = captures.get(1) {
                 let umi_str = umi_match.as_str();
@@ -171,20 +177,21 @@ pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator:
                     Some(matched) => matched.as_str(),
                     None => match SINGLE_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
                         Some(matched) => matched.as_str(),
-                        None => panic!("Could not find index"),  
+                        None => panic!("Could not find index"),
                     },
                 };
 
-                let read_info_with_umi = format!("{}{}{} {}", record.id(), umi_delineator, umi_str, indexes);
+                let read_info_with_umi =
+                    format!("{}{}{} {}", record.id(), umi_delineator, umi_str, indexes);
 
                 if umi_start <= read_sequence.len() && umi_start <= record.qual().len() {
-                    let umi_trimmed_sequence = format!("{}", &read_sequence[..umi_start]);
+                    let umi_trimmed_sequence = read_sequence[..umi_start].to_string();
                     let trimmed_quality = &record.qual()[..umi_start];
 
                     let new_record = Record::with_attrs(
-                        &read_info_with_umi, 
-                        None, 
-                        umi_trimmed_sequence.as_bytes(), 
+                        &read_info_with_umi,
+                        None,
+                        umi_trimmed_sequence.as_bytes(),
                         trimmed_quality,
                     );
 
@@ -195,6 +202,6 @@ pub fn extract_umis_qiagen(input_fastq: &str, sample_name: &str, umi_delineator:
             }
         }
     }
-    
+
     Ok(())
 }

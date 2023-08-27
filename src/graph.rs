@@ -1,33 +1,33 @@
-use std::collections::{HashMap, HashSet};
+use crate::bam::RecordWriter;
+use crate::hamming;
 use crate::io;
+use crate::levenshtein;
+use crate::Error;
 use crate::Graph;
 use crate::NodeIndex;
 use crate::READ_NAME_UMI_REGEX;
-use crate::Error;
-use crate::hamming;
-use crate::levenshtein;
 use petgraph::visit::Bfs;
 use petgraph::visit::VisitMap;
 use petgraph::visit::Visitable;
-use crate::bam::RecordWriter;
+use std::collections::{HashMap, HashSet};
 
-// Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from 
+// Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from
 // NodeIndex to a tuple of UMI and its count.
 type UmiGraph = (Graph<Vec<u8>, u32>, HashMap<NodeIndex, (Vec<u8>, u32)>);
 
 /// Construct a substring index from a slice of UMIs.
 ///
-/// This function creates an index that maps each unique substring of a UMI to a set of UMIs 
+/// This function creates an index that maps each unique substring of a UMI to a set of UMIs
 /// that contain that substring. The size of the substring is determined by `slice_size`.
 ///
-/// The index is used to quickly find potential neighbor UMIs that may be within a certain 
+/// The index is used to quickly find potential neighbor UMIs that may be within a certain
 /// edit distance, without having to compute the distance between all pairs of UMIs.
 ///
 /// # Arguments
 ///
 /// * `umis` - A slice of UMIs, where each UMI is a byte array.
 /// * `slice_size` - The size of the substring to use for the index. Each UMI is divided into
-///   chunks of this size (from left to right, and without overlap between chunks), and each 
+///   chunks of this size (from left to right, and without overlap between chunks), and each
 ///   chunk is added to the index.
 ///
 /// # Returns
@@ -43,14 +43,20 @@ type UmiGraph = (Graph<Vec<u8>, u32>, HashMap<NodeIndex, (Vec<u8>, u32)>);
 /// let index = build_substring_index(&umis, slice_size);
 /// ```
 ///
-/// In the above example, the index would map "AC" to {0}, "CG" to {0}, "GT" to {0, 2}, "TG" to {1, 3}, 
+/// In the above example, the index would map "AC" to {0}, "CG" to {0}, "GT" to {0, 2}, "TG" to {1, 3},
 /// "CA" to {1, 3}, "GA" to {2}, and "AT" to {3}.
-pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec<u8>, HashSet<usize>> {
+pub fn build_substring_index(
+    umis: &[Vec<u8>],
+    slice_size: usize,
+) -> HashMap<Vec<u8>, HashSet<usize>> {
     let mut index: HashMap<Vec<u8>, HashSet<usize>> = HashMap::new();
 
     for (i, umi) in umis.iter().enumerate() {
         for slice in umi.chunks(slice_size) {
-            index.entry(slice.to_vec()).or_insert_with(HashSet::new).insert(i);
+            index
+                .entry(slice.to_vec())
+                .or_insert_with(HashSet::new)
+                .insert(i);
         }
     }
 
@@ -60,32 +66,32 @@ pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec
 /// Create a graph from a dictionary of UMIs and their counts.
 ///
 /// This function constructs a graph where each node represents a unique UMI and each edge represents
-/// a edit distance less than or equal to `max_edits` between two UMIs. The edge creation is based 
-/// on the condition that the count of one UMI should be at least five times the count of the other 
-/// UMI minus 1. If the condition is met, an edge is added between the two UMIs. 
+/// a edit distance less than or equal to `max_edits` between two UMIs. The edge creation is based
+/// on the condition that the count of one UMI should be at least five times the count of the other
+/// UMI minus 1. If the condition is met, an edge is added between the two UMIs.
 ///
-/// The function implements a slightly modified directional graph algorithm that allows for a edit 
-/// Distance of 1 between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq 
-/// and small RNA-seq using unique molecular identifiers. <https://doi.org/10.1186/s12864-018-4933-1>. 
-/// The original algorithm uses a two fold count threshold. This version of the algorithm uses a 
-/// substring indexing strategy to efficiently find potential neighbors for each UMI before computing 
+/// The function implements a slightly modified directional graph algorithm that allows for a edit
+/// Distance of 1 between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq
+/// and small RNA-seq using unique molecular identifiers. <https://doi.org/10.1186/s12864-018-4933-1>.
+/// The original algorithm uses a two fold count threshold. This version of the algorithm uses a
+/// substring indexing strategy to efficiently find potential neighbors for each UMI before computing
 /// the edit distance, hence improving the performance for large datasets.
 ///
-/// Note that Levenshtein distance could be used here, but it generally takes longer to run and 
+/// Note that Levenshtein distance could be used here, but it generally takes longer to run and
 /// has a negligible effect on UMI deduplication.
 ///
 /// # Arguments
 ///
 /// * `umi_count_dict` - A hashmap where the key is the UMI (as a byte array) and the value is its count.
-/// * `max_edits` - The maximum edit distance allowed to consider two UMIs as neighbors 
+/// * `max_edits` - The maximum edit distance allowed to consider two UMIs as neighbors
 /// (i.e., to add an edge between them).
 /// * `use_levenshtein` - Whether to use the Levenshtein distance or the default Hamming distance
 /// as the edit distance metric.
 ///
 /// # Returns
 ///
-/// A tuple consisting of the UMI graph and a hashmap containing the node attributes. The graph is of 
-/// type `Graph<Vec<u8>, u32>`, and the hashmap key is a `NodeIndex` which points to a tuple of UMI 
+/// A tuple consisting of the UMI graph and a hashmap containing the node attributes. The graph is of
+/// type `Graph<Vec<u8>, u32>`, and the hashmap key is a `NodeIndex` which points to a tuple of UMI
 /// and its count.
 ///
 /// # Example
@@ -96,7 +102,11 @@ pub fn build_substring_index(umis: &[Vec<u8>], slice_size: usize) -> HashMap<Vec
 /// let max_edits: u32 = 1;
 /// let (graph, node_attributes) = umi_graph(&umi_count_dict, max_edits);
 /// ```
-pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_levenshtein: bool) -> UmiGraph {
+pub fn umi_graph(
+    umi_count_dict: &HashMap<Vec<u8>, u32>,
+    max_edits: u32,
+    use_levenshtein: bool,
+) -> UmiGraph {
     let mut graph: Graph<Vec<u8>, u32> = Graph::<Vec<u8>, u32>::new();
     let mut node_attributes: HashMap<NodeIndex, (Vec<u8>, u32)> = HashMap::new();
 
@@ -105,8 +115,8 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
 
     // Create nodes in the graph for each UMI
     for umi in &umis {
-        let count = *umi_count_dict.get(umi).unwrap(); // get count for the current UMI
-        let node = graph.add_node(umi.clone()); // add node to the graph
+        let count = *umi_count_dict.get(umi).unwrap(); // Get count for the current UMI
+        let node = graph.add_node(umi.clone()); // Add node to the graph
         node_attributes.insert(node, (umi.clone(), count));
     }
 
@@ -122,12 +132,11 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
 
     // Iterate over each UMI to find potential neighbors and add edges
     for i in 0..umis.len() {
-        
         // Split current UMI into slices
         let umi_slices: Vec<Vec<u8>> = umis[i]
-                                        .chunks(slice_size)
-                                        .map(|chunk| chunk.to_vec())
-                                        .collect(); 
+            .chunks(slice_size)
+            .map(|chunk| chunk.to_vec())
+            .collect();
         let mut potential_neighbors = HashSet::new();
 
         // Add UMIs having common substrings with the current UMI to the potential neighbors set
@@ -141,9 +150,8 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
         for j in potential_neighbors {
             // Ensure that we don't compute the distance between a UMI and itself
             if i != j {
-                let edit_distance =
-                if use_levenshtein {
-                    levenshtein(&umis[i], &umis[j]) as u32
+                let edit_distance = if use_levenshtein {
+                    levenshtein(&umis[i], &umis[j])
                 } else {
                     hamming(&umis[i], &umis[j]) as u32
                 };
@@ -176,9 +184,9 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
 /// This function examines each connected component in the given UMI graph and identifies
 /// the representative UMI for each component. A representative UMI is defined as the UMI
 /// within its connected component that has the highest count.
-/// 
-/// This function uses a breadth-first search (BFS) to traverse each connected component, keeping 
-/// track of the UMI with the highest count in the current component. The UMI with the highest 
+///
+/// This function uses a breadth-first search (BFS) to traverse each connected component, keeping
+/// track of the UMI with the highest count in the current component. The UMI with the highest
 /// count is then added to the representative UMIs HashSet.
 ///
 /// # Arguments
@@ -187,13 +195,13 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
 /// represents a unique UMI, and each edge represents a edit distance less than a specified
 /// threshold between two UMIs.
 ///
-/// * `node_attributes` - A reference to a HashMap mapping node indices to a tuple of UMIs and 
+/// * `node_attributes` - A reference to a HashMap mapping node indices to a tuple of UMIs and
 /// their counts. The key is a `NodeIndex`, and the value is a tuple where the first element
 /// is a UMI (as a byte array), and the second element is its count.
 ///
 /// # Returns
 ///
-/// * A HashSet containing the representative UMIs for each connected component in the graph. 
+/// * A HashSet containing the representative UMIs for each connected component in the graph.
 /// Each UMI is represented as a byte array (`Vec<u8>`).
 ///
 /// # Example
@@ -202,9 +210,10 @@ pub fn umi_graph(umi_count_dict: &HashMap<Vec<u8>, u32>, max_edits: u32, use_lev
 /// // assume `graph` and `node_attributes` are predefined
 /// let representative_umis = get_representative_umis_bfs(&graph, &node_attributes);
 /// ```
-pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, u32>
-                                , node_attributes: &HashMap<NodeIndex
-                                , (Vec<u8>, u32)>) -> HashSet<Vec<u8>> {
+pub fn get_representative_umis_bfs(
+    graph: &Graph<Vec<u8>, u32>,
+    node_attributes: &HashMap<NodeIndex, (Vec<u8>, u32)>,
+) -> HashSet<Vec<u8>> {
     // Initialize an empty HashSet to store the representative UMIs.
     let mut repr_umis: HashSet<Vec<u8>> = HashSet::new();
 
@@ -217,7 +226,7 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, u32>
         if !visited.is_visited(&start_node) {
             let mut bfs = Bfs::new(graph, start_node);
             // Initialize variables to keep track of the UMI with the maximum count in the current component.
-            let mut max_count:u32 = 0;
+            let mut max_count: u32 = 0;
             let mut max_umi: Vec<u8> = Vec::new();
 
             while let Some(node) = bfs.next(graph) {
@@ -250,8 +259,8 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, u32>
 ///
 /// # Arguments
 ///
-/// * `input_bam_file` - Path to an input BAM file. The BAM file should contain only mapped 
-///   RNA sequences and each read's UMI in the read name, appended using an underscore, e.g. 
+/// * `input_bam_file` - Path to an input BAM file. The BAM file should contain only mapped
+///   RNA sequences and each read's UMI in the read name, appended using an underscore, e.g.
 ///   "..._CGATGATCGATG".
 ///
 /// # Returns
@@ -263,7 +272,10 @@ pub fn get_representative_umis_bfs(graph: &Graph<Vec<u8>, u32>
 /// ```rust
 /// let corrected_umis = find_true_umis("sample1.UMI.bam");
 /// ```
-pub fn find_true_umis(input_bam_file: &str, use_levenshtein: bool) -> Result<HashSet<Vec<u8>>, io::Error> {
+pub fn find_true_umis(
+    input_bam_file: &str,
+    use_levenshtein: bool,
+) -> Result<HashSet<Vec<u8>>, io::Error> {
     let mut umi_counts: HashMap<Vec<u8>, u32> = HashMap::new();
     let bam_reader = bam::BamReader::from_path(input_bam_file, 11).unwrap();
 
@@ -277,7 +289,7 @@ pub fn find_true_umis(input_bam_file: &str, use_levenshtein: bool) -> Result<Has
         }
     }
 
-    if umi_counts.len() == 0 {
+    if umi_counts.is_empty() {
         return Err(io::Error::new(io::ErrorKind::InvalidInput, "No UMIs found"));
     }
 
@@ -307,7 +319,7 @@ pub fn find_true_umis(input_bam_file: &str, use_levenshtein: bool) -> Result<Has
 ///
 /// # Output
 ///
-/// This function doesn't return any value. Instead, it writes to an output BAM file named 
+/// This function doesn't return any value. Instead, it writes to an output BAM file named
 /// `{sample_name}.dedup.bam`, where `{sample_name}` is the provided sample name.
 ///
 /// # Example
@@ -321,7 +333,11 @@ pub fn find_true_umis(input_bam_file: &str, use_levenshtein: bool) -> Result<Has
 ///     Err(e) => eprintln!("An error occurred: {}", e),
 /// }
 /// ```
-pub fn deduplicate_bam(input_bam_file: &str, sample_name: &String, true_umis: HashSet<Vec<u8>>) -> Result<(), Box<dyn Error>> {
+pub fn deduplicate_bam(
+    input_bam_file: &str,
+    sample_name: &String,
+    true_umis: HashSet<Vec<u8>>,
+) -> Result<(), Box<dyn Error>> {
     // Open the input BAM file with 4 threads for reading
     let bam_reader = bam::BamReader::from_path(input_bam_file, 4)?;
 
@@ -341,11 +357,13 @@ pub fn deduplicate_bam(input_bam_file: &str, sample_name: &String, true_umis: Ha
 
         // Extract the UMI from the read's name by splitting the name by underscores and taking the last element
         let qname = std::str::from_utf8(record.name())?;
-        let umi: Vec<u8> = qname.split("_").last().unwrap().bytes().collect();
+        let umi: Vec<u8> = qname.split('_').last().unwrap().bytes().collect();
 
         // If the UMI exists and the combination of the UMI and the read's mapping position hasn't been observed before,
         // write the read to the output file and record the UMI-mapping position combination
-        if true_umis.contains(&umi) && !umis_and_positions_added.contains_key(&(umi.clone(), record.ref_id())) {
+        if true_umis.contains(&umi)
+            && !umis_and_positions_added.contains_key(&(umi.clone(), record.ref_id()))
+        {
             // Write the read to the output BAM file
             bam_writer.write(&record)?;
 
