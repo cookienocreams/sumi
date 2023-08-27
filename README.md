@@ -49,7 +49,7 @@ There are numerous options that can be changed if desired. Use `-h` or `--help` 
 ## Basic usage
 
 The app can be run using the `sumi` executable. To this command to analyze files with a miRNA bowtie2 reference located
-in `/home/user/data/`, a 12 bp UMI on the 5' end with the structure "NNNNNCCANNTCANNNNN", and with 24 threads.
+in `/home/user/data/`, a 12 bp UMI on the 5' end with the structure "NNNNNCCANNTCANNNNN", and with 8 threads.
 
 ```bash
 cd fastqs
