@@ -1,6 +1,11 @@
 # sumi: A simple small RNA umi analysis
 A simple analysis for small RNA libraries with UMIs
 
+## Script dependencies
+- bowtie2
+- samtools
+- cutadapt
+
 ## Installation instructions
 
 Create executable to run on local machine using the compiled binary:
