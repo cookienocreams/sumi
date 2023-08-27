@@ -34,8 +34,13 @@ The next step is to install all libraries and their dependencies and compile the
 cargo build --release
 ```
 
-The compliled binary will be in `./target/release/`. There are numerous options that can be changed 
-if desired. Use `-h` or `--help` flags to see options.
+Before the binday can be used, it must be made executable. The compliled binary will be in `./target/release/`.
+
+```bash
+chmod +x ./target/release/sumi 
+```
+
+There are numerous options that can be changed if desired. Use `-h` or `--help` flags to see options.
 
 ```bash
 ./target/release/sumi --help
