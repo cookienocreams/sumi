@@ -1,6 +1,7 @@
 # sumi: A simple small RNA umi analysis
 [![Rust](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/rust.yml)
 [![Continuous integration](https://github.com/cookienocreams/sumi/actions/workflows/CI.yaml/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/CI.yaml)
+[![pages-build-deployment](https://github.com/cookienocreams/sumi/actions/workflows/pages/pages-build-deployment/badge.svg)](https://github.com/cookienocreams/sumi/actions/workflows/pages/pages-build-deployment)
 
 A simple analysis for small RNA libraries with UMIs
 
