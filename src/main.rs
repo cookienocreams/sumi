@@ -1,48 +1,48 @@
-mod sample;
-mod trim_adapters;
+mod common;
 mod extract_umis;
 mod graph;
-mod rna_counts;
-mod thresholds;
 mod lengths;
-mod common;
 mod quality;
+mod rna_counts;
+mod sample;
+mod thresholds;
+mod trim_adapters;
 
-use crate::sample::count_reads;
-use crate::sample::subsample_fastqs;
-use crate::trim_adapters::trim_adapters;
-use crate::extract_umis::extract_umis;
-use crate::extract_umis::extract_umis_qiagen;
-use crate::rna_counts::rna_discovery_calculation;
-use crate::lengths::calculate_read_length_distribution;
-use crate::thresholds::threshold_count;
-use crate::thresholds::combine_threshold_counts;
 use crate::common::find_common_rnas;
 use crate::common::write_common_rna_file;
+use crate::extract_umis::extract_umis;
+use crate::extract_umis::extract_umis_qiagen;
+use crate::lengths::calculate_read_length_distribution;
+use crate::rna_counts::rna_discovery_calculation;
+use crate::sample::count_reads;
+use crate::sample::subsample_fastqs;
+use crate::thresholds::combine_threshold_counts;
+use crate::thresholds::threshold_count;
+use crate::trim_adapters::trim_adapters;
 
 extern crate bam;
 // Import the `lazy_static` macro
 #[macro_use]
 extern crate lazy_static;
 
+use bio::alignment::distance::simd::*;
+use clap::{App, Arg};
+use csv::{Reader as csv_reader, Writer as csv_writer};
+use glob::glob;
+use indicatif::{ProgressBar, ProgressStyle};
+use niffler::get_reader;
 use petgraph::graph::NodeIndex;
 use petgraph::Graph;
-use std::collections::{HashMap, HashSet};
-use std::str;
-use regex::Regex;
-use std::process::Command;
-use std::path::Path;
-use std::fs::{self, File};
-use thiserror::Error;
-use clap::{App, Arg};
 use polars::prelude::*;
-use std::io::{self, BufReader, BufWriter, Read};
-use indicatif::{ProgressBar, ProgressStyle};
+use regex::Regex;
+use std::collections::{HashMap, HashSet};
 use std::error::Error;
-use niffler::get_reader;
-use csv::{Reader as csv_reader, Writer as csv_writer};
-use bio::alignment::distance::simd::*;
-use glob::glob;
+use std::fs::{self, File};
+use std::io::{self, BufReader, BufWriter, Read};
+use std::path::Path;
+use std::process::Command;
+use std::str;
+use thiserror::Error;
 
 lazy_static! {
     /// Define the regex to extract index information and UMI and index information
@@ -122,7 +122,9 @@ impl Config {
         let qiagen = matches.is_present("qiagen");
         let write_metrics = matches.is_present("write_metrics");
         let thresholds = match matches.values_of("thresholds") {
-            Some(values) => values.map(|x| x.parse::<usize>().expect("Threshold must be a number.")).collect(),
+            Some(values) => values
+                .map(|x| x.parse::<usize>().expect("Threshold must be a number."))
+                .collect(),
             None => vec![1, 3, 5, 10],
         };
         let include_unaligned_reads = matches.is_present("include_unaligned_reads");
@@ -175,7 +177,7 @@ pub fn capture_target_files(files_to_capture: &str) -> Vec<String> {
                         files.push(filename.to_string());
                     }
                 }
-            },
+            }
             Err(e) => println!("{:?}", e),
         }
     }
@@ -188,8 +190,8 @@ pub fn capture_target_files(files_to_capture: &str) -> Vec<String> {
 /// Check if a file is gzipped by reading the first two bytes and comparing them to the gzip magic numbers
 pub fn is_gzipped(filename: &str) -> io::Result<bool> {
     let mut file = File::open(filename)?;
-    let mut buffer = [0; 2];  // Buffer to store the first two bytes
-    file.read(&mut buffer)?;
+    let mut buffer = [0; 2]; // Buffer to store the first two bytes
+    file.read_exact(&mut buffer)?;
     Ok(buffer == [0x1f, 0x8b])
 }
 
@@ -201,9 +203,9 @@ pub fn is_gzipped(filename: &str) -> io::Result<bool> {
 /// # Arguments
 ///
 /// * `input_regex` - A string slice that holds the regex pattern used for UMI extraction.
-/// * `minimum_length` - A u8 value that specifies the minimum fragment length without 
+/// * `minimum_length` - A u8 value that specifies the minimum fragment length without
 /// considering UMI length.
-/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value 
+/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value
 /// affects how the minimum length is calculated.
 ///
 /// # Returns
@@ -240,14 +242,13 @@ fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bo
     let mut min_length = minimum_length;
     let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
 
-    min_length = 
-        if min_length != 16 && !is_qiagen { 
-            min_length + umi_length 
-        } else if min_length == 16 && !is_qiagen {
-            16 + umi_length
-        } else {
-            16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
-        };
+    min_length = if min_length != 16 && !is_qiagen {
+        min_length + umi_length
+    } else if min_length == 16 && !is_qiagen {
+        16 + umi_length
+    } else {
+        16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
+    };
 
     min_length
 }
@@ -261,8 +262,8 @@ fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bo
 ///
 /// # Returns
 ///
-/// This function will return a HashMap as a Result<HashMap<String, u64>, Box<dyn std::error::Error>>` 
-/// with the name of the fastq file as the key and the read count as the value. 
+/// This function will return a HashMap as a Result<HashMap<String, u64>, Box<dyn std::error::Error>>`
+/// with the name of the fastq file as the key and the read count as the value.
 /// If an error occurs while reading any of the files, the error will be returned instead.
 ///
 /// # Examples
@@ -270,17 +271,19 @@ fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bo
 /// ```
 /// let files = vec!["sample1.fastq", "sample2.fastq", "sample3.fastq"];
 /// let sample_names = vec!["sample1", "sample2", "sample3"];
-/// 
+///
 /// let read_counts = get_read_counts(files, sample_names)?;
 /// for (sample_name, count) in read_counts {
 ///     println!("{} contains {} reads.", sample_name, count);
 /// }
 /// ```
-pub fn get_read_counts(input_fastqs: Vec<String>, sample_names: &Vec<String>) 
-                -> Result<HashMap<String, u64>, Box<dyn std::error::Error>> {
+pub fn get_read_counts(
+    input_fastqs: Vec<String>,
+    sample_names: &Vec<String>,
+) -> Result<HashMap<String, u64>, Box<dyn std::error::Error>> {
     let num_of_fastqs = input_fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
@@ -292,14 +295,14 @@ pub fn get_read_counts(input_fastqs: Vec<String>, sample_names: &Vec<String>)
     let mut read_counts = HashMap::new();
 
     for (file, name) in input_fastqs.iter().zip(sample_names) {
-        let count: u64 = count_reads(file)?.try_into().unwrap();
+        let count: u64 = count_reads(file)?;
         read_counts.insert(name.to_string(), count);
 
         progress_br.inc(1);
-    };
+    }
 
     progress_br.finish_with_message("Finished counting reads.");
-    
+
     Ok(read_counts)
 }
 
@@ -327,7 +330,7 @@ fn remove_intermediate_files() {
         "_subsample",
         "processed",
         "_threshold_count_sum.csv",
-        "_common_RNAs"
+        "_common_RNAs",
     ]
     .into_iter()
     .flat_map(capture_target_files)
@@ -339,9 +342,8 @@ fn remove_intermediate_files() {
 }
 
 fn main() -> io::Result<()> {
-
-    let matches = App::new("Small RNA Analysis")
-        .version("1.0")
+    let matches = App::new("Small RNA UMI Analysis")
+        .version("0.1.0")
         .author("Author: Michael Hawkins")
         .about("This script can be used to analyze Small RNA UMI libraries. \
         \n\nIt performs UMI error correction and deduplication using a directional graph algorithm.\
@@ -434,7 +436,7 @@ fn main() -> io::Result<()> {
             Arg::with_name("thresholds")
                 .short('T')
                 .long("thresholds")
-                .multiple(true) 
+                .multiple(true)
                 .help("The thresholds for RNA species counting. Multiple values must be \
                 separated by a space. Default threshold values set to 1 3 5 10.")
                 .value_name("THRESHOLDS"),
@@ -477,12 +479,12 @@ fn main() -> io::Result<()> {
     let config = Config::new(matches);
 
     // Set the library type
-    let library_type: &str;
+    let library_type: &str = 
     if config.qiagen {
-        library_type = "Qiagen"
+        "Qiagen"
     } else {
-        library_type = "UMI"
-    }
+        "UMI"
+    };
 
     // Gather all the input parameters
     let reference = &config.alignment_reference;
@@ -491,11 +493,12 @@ fn main() -> io::Result<()> {
     let umi_regex_result = Regex::new(&config.umi_regex);
     let umi_regex = match umi_regex_result {
         Ok(regex) => regex,
-        Err(_) => panic!("Unexpected umi regex pattern")
+        Err(_) => panic!("Unexpected umi regex pattern"),
     };
 
     // Set minimum length for adapter trimming
-    let minimum_length = calculate_minimum_length(&config.umi_regex, config.minimum_length, config.qiagen);
+    let minimum_length =
+        calculate_minimum_length(&config.umi_regex, config.minimum_length, config.qiagen);
 
     // Get fastq files
     let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
@@ -508,19 +511,25 @@ fn main() -> io::Result<()> {
         match is_gzipped(fastq) {
             Ok(compressed) => {
                 if !compressed {
-                    panic!("File {} is not gzipped. Please gzip the input files.", fastq);
+                    panic!(
+                        "File {} is not gzipped. Please gzip the input files.",
+                        fastq
+                    );
                 }
-            },
-            Err(e) => panic!("Failed to check if file {} is gzipped due to error: {}", fastq, e),
+            }
+            Err(e) => panic!(
+                "Failed to check if file {} is gzipped due to error: {}",
+                fastq, e
+            ),
         };
-    };
+    }
 
     // Get sample names
     let mut sample_names: Vec<String> = Vec::new();
     for filename in &fastq_files {
         let path = Path::new(&filename);
         let extensionless_name = path.file_stem().unwrap().to_str().unwrap();
-        let first_name = extensionless_name.split("_").next().unwrap();
+        let first_name = extensionless_name.split('_').next().unwrap();
         sample_names.push(first_name.to_string());
     }
 
@@ -536,49 +545,88 @@ fn main() -> io::Result<()> {
     // Subsample fastqs if desired
     if config.subsample_to_lowest {
         // Subsample to the smallest fastq file
-        let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), None, config.rng_seed);
+        let _ = subsample_fastqs(
+            fastq_files.clone(),
+            sample_names.clone(),
+            None,
+            config.rng_seed,
+        );
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
-        trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, &umi_regex);
+        trimmed_fastqs = trim_adapters(
+            subsamples_fastq_files,
+            sample_library_type.clone(),
+            minimum_length,
+            &umi_regex,
+        );
     } else if let Some(n_reads) = config.subsample_fastqs {
         // Subsample to the specified number of reads
-        let _ = subsample_fastqs(fastq_files.clone(), sample_names.clone(), Some(n_reads), config.rng_seed);
+        let _ = subsample_fastqs(
+            fastq_files.clone(),
+            sample_names.clone(),
+            Some(n_reads),
+            config.rng_seed,
+        );
         let subsamples_fastq_files = capture_target_files("_subsample.fastq");
 
         // Trim adapters from the reads and remove UMIs
-        trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, &umi_regex);
+        trimmed_fastqs = trim_adapters(
+            subsamples_fastq_files,
+            sample_library_type.clone(),
+            minimum_length,
+            &umi_regex,
+        );
     } else {
         // No subsampling
-        trimmed_fastqs = trim_adapters(fastq_files.clone(), sample_library_type.clone(), minimum_length, &umi_regex);
+        trimmed_fastqs = trim_adapters(
+            fastq_files.clone(),
+            sample_library_type.clone(),
+            minimum_length,
+            &umi_regex,
+        );
     }
 
-    // Calculate number of RNA in each sample 
+    // Calculate number of RNA in each sample
     // Error correct UMIs in sample bam file
     let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs
                                                                 , sample_names.clone()
-                                                                , &config) 
+                                                                , &config)
                                                                 else {panic!("An error occurred during the RNA counting calculation")};
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));
 
     // Create read length distribution
-    let _ = calculate_read_length_distribution(sam_files);
+    calculate_read_length_distribution(sam_files);
 
-    let _ = threshold_count(rna_counts_files.clone(), config.thresholds, sample_names.clone(), reference);
+    let _ = threshold_count(
+        rna_counts_files.clone(),
+        config.thresholds,
+        sample_names.clone(),
+        reference,
+    );
 
     let threshold_files = capture_target_files("_threshold_count_sum.csv");
 
-    let _ = combine_threshold_counts(threshold_files, "RNA_threshold_counts.csv".to_string(), sample_names.clone());
+    let _ = combine_threshold_counts(
+        threshold_files,
+        "RNA_threshold_counts.csv".to_string(),
+        sample_names.clone(),
+    );
 
-    let (full_rna_names_list, rna_info, rpm_info) = find_common_rnas(rna_counts_files
-                                                                     , sample_names.clone()
-                                                                     );
-    let _ = write_common_rna_file(full_rna_names_list.clone(), rna_info, rpm_info, sample_names, reference_name);
+    let (full_rna_names_list, rna_info, rpm_info) =
+        find_common_rnas(rna_counts_files, sample_names.clone());
+    write_common_rna_file(
+        full_rna_names_list.clone(),
+        rna_info,
+        rpm_info,
+        sample_names,
+        reference_name,
+    );
 
     // Remove intermediate files, such as bam and sam files, unless otherwise specified
     if !config.keep_intermediate_files {
-        let _ = remove_intermediate_files();
+        remove_intermediate_files();
     }
 
     Ok(())
