@@ -18,7 +18,8 @@ It uses a five fold threshold, while the original algorithm uses a two fold coun
 
 ## Installation instructions
 
-Create executable to run on local machine using the compiled binary:
+Create executable to run on local machine using the compiled binary.
+
 
 You will need to have Rust installed on your computer before starting. Rust can be installed from here: [Install Rust](https://www.rust-lang.org/tools/install)
 
