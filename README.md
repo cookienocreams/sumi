@@ -5,7 +5,7 @@ A simple analysis for small RNA libraries with UMIs
 
 Create executable to run on local machine using the compiled binary:
 
-You will need to have Rust installed on your computer before starting. Rust can be installed from here: https://julialang.org/downloads/
+You will need to have Rust installed on your computer before starting. Rust can be installed from here: [Install Rust](https://www.rust-lang.org/tools/install)
 
 Download the git repository using git or manually and change into the repository folder.
 ```bash
@@ -29,9 +29,9 @@ if desired. Use `-h` or `--help` flags to see options.
 ## Basic usage
 
 The app can be run using the `sumi` executable. To this command to analyze files with a miRNA bowtie2 reference located
-in `/home/user/data/`, a 12 bp UMI on the 5' end with the structure "NNNNNCCANNTCANNNNN", with 24 threads.
+in `/home/user/data/`, a 12 bp UMI on the 5' end with the structure "NNNNNCCANNTCANNNNN", and with 24 threads.
 
 ```bash
 cd fastqs
-/home/user/sumi/target/release/sumi --reference /home/user/data/miRNA --umi_regex "(.{5})CCA(.{2})TCA(.{5})" --threads 24
+sumi --reference /home/user/data/miRNA --umi_regex "(.{5})CCA(.{2})TCA(.{5})" --threads 24
 ```
