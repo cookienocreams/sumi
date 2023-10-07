@@ -5,6 +5,7 @@
 
 A simple analysis for small RNA libraries with UMIs
 
+Can be used to check for the presence of isomiRs in addition to canonical miRNAs.
 
 It performs UMI error correction and deduplication using a directional graph algorithm. This script 
 implements a slightly modified directional graph algorithm that allows for a Hamming Distance of 1 
@@ -55,5 +56,12 @@ in `/home/user/data/`, a 12 bp UMI on the 5' end with the structure "NNNNNCCANNT
 
 ```bash
 cd fastqs
-sumi --reference /home/user/data/miRNA --umi_regex "(.{5})CCA(.{2})TCA(.{5})" --threads 24
+./sumi --reference /home/user/data/miRNA --umi_regex "(.{5})CCA(.{2})TCA(.{5})" --threads 24
+```
+
+To check for isomiRs and generate counts and the alignment information, run the following command. 
+Note that the isomiR and canonical miRNA percentages are separated.
+
+```bash
+./sumi --reference /home/user/data/miRNA --isomir --write_metrics
 ```

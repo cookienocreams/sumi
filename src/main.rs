@@ -1,12 +1,13 @@
-mod common;
-mod extract_umis;
-mod graph;
-mod lengths;
-mod quality;
-mod rna_counts;
-mod sample;
-mod thresholds;
-mod trim_adapters;
+pub mod common;
+pub mod extract_umis;
+pub mod graph;
+pub mod lengths;
+pub mod quality;
+pub mod rna_counts;
+pub mod sample;
+pub mod thresholds;
+pub mod trim_adapters;
+pub mod isomirs;
 
 use crate::common::find_common_rnas;
 use crate::common::write_common_rna_file;
@@ -19,8 +20,8 @@ use crate::sample::subsample_fastqs;
 use crate::thresholds::combine_threshold_counts;
 use crate::thresholds::threshold_count;
 use crate::trim_adapters::trim_adapters;
+use crate::graph::find_true_isomir_umis;
 
-extern crate bam;
 // Import the `lazy_static` macro
 #[macro_use]
 extern crate lazy_static;
@@ -46,12 +47,12 @@ use thiserror::Error;
 
 lazy_static! {
     /// Define the regex to extract index information and UMI and index information
-    static ref SINGLE_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+").unwrap();
-    static ref DUAL_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+\+[ATCGN]+").unwrap();
-    static ref READ_NAME_UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
-    static ref UMI_REGEX_QIAGEN: Regex = Regex::new(r"AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG").unwrap();
-    static ref NUM_CAPTURE_REGEX: Regex =  Regex::new(r"\.\{(\d+)\}").unwrap();
-    static ref BASE_CAPTURE_REGEX: Regex = Regex::new(r"[ATCG]+").unwrap();
+    pub static ref SINGLE_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+").unwrap();
+    pub static ref DUAL_INDEX_REGEX: Regex = Regex::new(r"1:N:\d:[ATCGN]+\+[ATCGN]+").unwrap();
+    pub static ref READ_NAME_UMI_REGEX: Regex = Regex::new(r"_([ATCG]+)").unwrap();
+    pub static ref UMI_REGEX_QIAGEN: Regex = Regex::new(r"AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG").unwrap();
+    pub static ref NUM_CAPTURE_REGEX: Regex =  Regex::new(r"\.\{(\d+)\}").unwrap();
+    pub static ref BASE_CAPTURE_REGEX: Regex = Regex::new(r"[ATCG]+").unwrap();
 }
 
 /// The `Config` struct is used to store the configuration settings for the analysis.
@@ -59,6 +60,7 @@ lazy_static! {
 /// # Fields
 ///
 /// * `minimum_length` - The minimum length a fragment needs to be to be analyzed.
+/// * `maximum_length` - The maximum length a fragment needs to be to be analyzed.
 /// * `num_threads` - The number of threads to be used for the analysis.
 /// * `keep_intermediate_files` - A flag indicating whether to keep intermediate files generated during the analysis.
 /// * `alignment_reference` - The reference sequence for alignment.
@@ -71,9 +73,13 @@ lazy_static! {
 /// * `levenshtein_distance` - A flag indicating whether to compute the Levenshtein distance for the reads.
 /// * `umi_regex` - A regular expression used to match Unique Molecular Identifiers (UMIs) in the reads.
 /// * `write_metrics` - A flag indicating whether to include RNA alignment, quality scores, and read counts in an output file.
+/// * `isomirs` - A flag indicating whether to count the occurrence of isomiRs with base additions or deletions on either end.
+/// * `max_isomir_diff` - The maximum number of additional bases to be considered for extension or deletion on each end.
+/// * `mismatch` - A flag indicating whether to allow a 1 bp mismatch during alignment.
 #[derive(Debug)]
 pub struct Config {
     minimum_length: u8,
+    maximum_length: u8,
     num_threads: u8,
     keep_intermediate_files: bool,
     alignment_reference: String,
@@ -86,6 +92,9 @@ pub struct Config {
     levenshtein_distance: bool,
     umi_regex: String,
     write_metrics: bool,
+    isomirs: bool,
+    max_isomir_diff: usize,
+    mismatch: bool,
 }
 
 impl Config {
@@ -101,6 +110,7 @@ impl Config {
     fn new(matches: clap::ArgMatches) -> Self {
         // Parse the command-line arguments
         let minimum_length = *matches.get_one("minimum_length").unwrap();
+        let maximum_length = *matches.get_one("maximum_length").unwrap();
         let num_threads = *matches.get_one("num_threads").unwrap();
         let keep_intermediate_files = matches.is_present("keep_intermediate_files");
         let alignment_reference = matches.value_of("alignment_reference").unwrap().to_string();
@@ -130,9 +140,13 @@ impl Config {
         let include_unaligned_reads = matches.is_present("include_unaligned_reads");
         let levenshtein_distance = matches.is_present("levenshtein_distance");
         let umi_regex = matches.value_of("umi_regex").unwrap().to_string();
+        let isomirs = matches.is_present("isomirs");
+        let max_isomir_diff = *matches.get_one("max_isomir_diff").unwrap();
+        let mismatch = matches.is_present("mismatch");
 
         Self {
             minimum_length,
+            maximum_length,
             num_threads,
             keep_intermediate_files,
             alignment_reference,
@@ -145,6 +159,9 @@ impl Config {
             levenshtein_distance,
             umi_regex,
             write_metrics,
+            isomirs,
+            max_isomir_diff,
+            mismatch,
         }
     }
 }
@@ -165,7 +182,34 @@ impl Config {
 /// let target_files = capture_target_files(".txt");
 /// // target_files is ["file1.txt", "file2.txt", "file3.txt"]
 /// ```
-pub fn capture_target_files(files_to_capture: &str) -> Vec<String> {
+pub fn capture_target_files(files_to_capture: &str, fasta_search: bool) -> Vec<String> {
+    let mut files: Vec<String> = Vec::new();
+    let pattern = 
+    if !fasta_search {
+        format!("*{}*", files_to_capture)
+    } else { 
+        format!("{}*", files_to_capture)
+    };
+
+    for entry in glob(&pattern).expect("Failed to read glob pattern") {
+        match entry {
+            Ok(path) => {
+                if let Some(filename) = path.file_name() {
+                    if let Some(filename) = filename.to_str() {
+                        files.push(filename.to_string());
+                    }
+                }
+            }
+            Err(e) => println!("{:?}", e),
+        }
+    }
+
+    files.sort_unstable();
+
+    files
+}
+
+pub fn capture_files_to_delete(files_to_capture: &str) -> Vec<String> {
     let mut files: Vec<String> = Vec::new();
     let pattern = format!("*{}*", files_to_capture);
 
@@ -221,9 +265,9 @@ pub fn is_gzipped(filename: &str) -> io::Result<bool> {
 /// let min_length = 16;
 /// let is_qiagen = false;
 ///
-/// let minimum_length = calculate_lengths(input_regex, min_length, is_qiagen);
+/// let minimum_length = calculate_minimum_length(input_regex, min_length, is_qiagen);
 /// ```
-fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bool) -> u8 {
+pub fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bool) -> u8 {
     let mut umi_sum: u8 = 0;
 
     // Get length of UMI by combining the numbers in the capture groups in the regex pattern
@@ -251,6 +295,64 @@ fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bo
     };
 
     min_length
+}
+
+/// Calculates the maximum length to allow post adapter trimming.
+///
+/// This function extracts the length of UMI and intermediate bases from the given regex pattern,
+/// and then calculates the maximum length of a fragment taking the UMI length into account.
+///
+/// # Arguments
+///
+/// * `input_regex` - A string slice that holds the regex pattern used for UMI extraction.
+/// * `maximum` - A u8 value that specifies the maximum fragment length without
+/// considering UMI length.
+/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value
+/// affects how the maximum length is calculated.
+///
+/// # Returns
+///
+/// * A tuple `(umi_length, max_length)` where:
+///   * `umi_length` is the calculated length of the UMI and intermediate bases.
+///   * `min_length` is the calculated maximum length of a fragment considering UMI length.
+///
+/// # Examples
+///
+/// ```
+/// let input_regex = "^(.{12})";
+/// let max_length = 30;
+/// let is_qiagen = false;
+///
+/// let maximum_length = calculate_maximum_length(input_regex, max_length, is_qiagen);
+/// ```
+pub fn calculate_maximum_length(input_regex: &str, maximum_length: u8, is_qiagen: bool) -> u8 {
+    let mut umi_sum: u8 = 0;
+
+    // Get length of UMI by combining the numbers in the capture groups in the regex pattern
+    for captures in NUM_CAPTURE_REGEX.captures_iter(input_regex) {
+        if let Ok(num) = captures[1].parse::<u8>() {
+            umi_sum += num;
+        }
+    }
+
+    // Get length of intermediate bases between UMI groups if present
+    for capture in BASE_CAPTURE_REGEX.find_iter(input_regex) {
+        umi_sum += capture.as_str().len() as u8;
+    }
+
+    // Set the minimum fragment length taking UMI length into account
+    let mut max_length = maximum_length;
+    let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
+
+    max_length = if max_length != 30 && !is_qiagen {
+        max_length + umi_length
+    } else if max_length == 30 && !is_qiagen {
+        30 + umi_length
+    } else {
+        30 // Set maximum length for Qiagen to 30 since the UMI is on the 3' end after the adapter
+    };
+
+    max_length
 }
 
 /// Find how many reads are in each fastq file.
@@ -317,7 +419,7 @@ pub fn get_read_counts(
 /// ```
 /// remove_intermediate_files();
 /// ```
-fn remove_intermediate_files() {
+pub fn remove_intermediate_files() {
     let files_to_delete: HashSet<String> = vec![
         ".bam",
         ".cut.fastq",
@@ -333,7 +435,7 @@ fn remove_intermediate_files() {
         "_common_RNAs",
     ]
     .into_iter()
-    .flat_map(capture_target_files)
+    .flat_map(capture_files_to_delete)
     .collect();
 
     for file in files_to_delete {
@@ -341,8 +443,8 @@ fn remove_intermediate_files() {
     }
 }
 
-fn main() -> io::Result<()> {
-    let matches = App::new("Small RNA UMI Analysis")
+pub fn main() -> io::Result<()> {
+    let matches = App::new("sumi")
         .version("0.1.0")
         .author("Author: Michael Hawkins")
         .about("This script can be used to analyze Small RNA UMI libraries. \
@@ -363,6 +465,16 @@ fn main() -> io::Result<()> {
                 .value_name("MINIMUM_LENGTH")
                 .value_parser(clap::value_parser!(u8).range(0..75))
                 .default_value("16"),
+        )
+        .arg(
+            Arg::with_name("maximum_length")
+                .short('x')
+                .long("max-length")
+                .help("The maxiumum length cutoff for cutadapt. Fragments longer than this length \
+                will be discarded after adapter trimming.")
+                .value_name("MAXIMUM_LENGTH")
+                .value_parser(clap::value_parser!(u8).range(0..150))
+                .default_value("30"),
         )
         .arg(
             Arg::with_name("num_threads")
@@ -387,7 +499,8 @@ fn main() -> io::Result<()> {
                 .value_name("ALIGNMENT_REFERENCE")
                 .help("The bowtie2 reference location. Use full path, e.g., /home/path/to/ref. \
                 Name of reference for the target RNA type should be a simple one word name such \
-                as 'miRNA' or 'pfeRNA'.")
+                as 'miRNA' or 'pfeRNA'. Note the accompanying RNA fasta file needs to be in the \
+                same folder as the reference.")
                 .takes_value(true)
                 .default_value("./data/miRNA"),
         )
@@ -459,6 +572,26 @@ fn main() -> io::Result<()> {
                 .help("Use the Levenshtein distance as the edit distance when comparing UMIs.")
         )
         .arg(
+            Arg::with_name("isomirs")
+                .short('i')
+                .long("isomir")
+                .takes_value(false)
+                .help("Count the occurrence of isomiRs with base additions or deletions on \
+                either end in each sample. Internal mismatches are not allowed, though \
+                single mutations on either end are. IsomiRs will be written to separate output file.")
+        )
+        .arg(
+            Arg::with_name("max_isomir_diff")
+                .short('d')
+                .long("diff")
+                .help("The maximum number of bases to be considered for extension or deletion at the 3' or 5' end. \
+                Note 5' end extensions are limited to a maximum of 2 given limited biological \
+                evidence of their existence.")
+                .value_name("ISOMIR_DIFF")
+                .value_parser(clap::value_parser!(usize))
+                .default_value("3"),
+        )
+        .arg(
             Arg::with_name("umi_regex")
             .short('p')
             .long("umi_regex")
@@ -474,21 +607,23 @@ fn main() -> io::Result<()> {
             .takes_value(true)
             .default_value("(^.{12})"),
         )
+        .arg(
+            Arg::with_name("mismatch")
+                .short('e')
+                .long("mismatch")
+                .takes_value(false)
+                .help("Allow a 1 bp mismatch during sequence alignment. Default is to disallow mismatches.")
+        )
         .get_matches();
 
     let config = Config::new(matches);
 
     // Set the library type
-    let library_type: &str = 
-    if config.qiagen {
-        "Qiagen"
-    } else {
-        "UMI"
-    };
+    let library_type: &str = if config.qiagen { "Qiagen" } else { "UMI" };
 
     // Gather all the input parameters
     let reference = &config.alignment_reference;
-    let reference_name = Path::new(reference).file_name().unwrap().to_str().unwrap();
+    let reference_name = Path::new(reference).file_name().unwrap().to_str().expect("Reference checked.");
 
     let umi_regex_result = Regex::new(&config.umi_regex);
     let umi_regex = match umi_regex_result {
@@ -500,8 +635,12 @@ fn main() -> io::Result<()> {
     let minimum_length =
         calculate_minimum_length(&config.umi_regex, config.minimum_length, config.qiagen);
 
+    // Set maximum length for adapter trimming
+    let maximum_length =
+        calculate_maximum_length(&config.umi_regex, config.maximum_length, config.qiagen);
+
     // Get fastq files
-    let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz");
+    let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz", false);
     if fastq_files.is_empty() {
         panic!("No fastq files were found");
     }
@@ -551,13 +690,14 @@ fn main() -> io::Result<()> {
             None,
             config.rng_seed,
         );
-        let subsamples_fastq_files = capture_target_files("_subsample.fastq");
+        let subsamples_fastq_files = capture_target_files("_subsample.fastq", false);
 
         // Trim adapters from the reads and remove UMIs
         trimmed_fastqs = trim_adapters(
             subsamples_fastq_files,
             sample_library_type.clone(),
             minimum_length,
+            maximum_length,
             &umi_regex,
         );
     } else if let Some(n_reads) = config.subsample_fastqs {
@@ -568,13 +708,14 @@ fn main() -> io::Result<()> {
             Some(n_reads),
             config.rng_seed,
         );
-        let subsamples_fastq_files = capture_target_files("_subsample.fastq");
+        let subsamples_fastq_files = capture_target_files("_subsample.fastq", false);
 
         // Trim adapters from the reads and remove UMIs
         trimmed_fastqs = trim_adapters(
             subsamples_fastq_files,
             sample_library_type.clone(),
             minimum_length,
+            maximum_length,
             &umi_regex,
         );
     } else {
@@ -583,6 +724,7 @@ fn main() -> io::Result<()> {
             fastq_files.clone(),
             sample_library_type.clone(),
             minimum_length,
+            maximum_length,
             &umi_regex,
         );
     }
@@ -594,7 +736,7 @@ fn main() -> io::Result<()> {
                                                                 , &config)
                                                                 else {panic!("An error occurred during the RNA counting calculation")};
 
-    let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name));
+    let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name), false);
 
     // Create read length distribution
     calculate_read_length_distribution(sam_files);
@@ -606,7 +748,7 @@ fn main() -> io::Result<()> {
         reference,
     );
 
-    let threshold_files = capture_target_files("_threshold_count_sum.csv");
+    let threshold_files = capture_target_files("_threshold_count_sum.csv", false);
 
     let _ = combine_threshold_counts(
         threshold_files,

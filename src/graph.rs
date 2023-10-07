@@ -1,19 +1,19 @@
-use crate::bam::RecordWriter;
 use crate::hamming;
 use crate::io;
 use crate::levenshtein;
-use crate::Error;
 use crate::Graph;
 use crate::NodeIndex;
 use crate::READ_NAME_UMI_REGEX;
+use crate::{HashMap, HashSet};
 use petgraph::visit::Bfs;
 use petgraph::visit::VisitMap;
 use petgraph::visit::Visitable;
-use std::collections::{HashMap, HashSet};
+use rust_htslib::bam::{Read, Reader, Record, Writer, Header};
+use rust_htslib::bam::Format::Bam;
 
 // Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from
 // NodeIndex to a tuple of UMI and its count.
-type UmiGraph = (Graph<Vec<u8>, u32>, HashMap<NodeIndex, (Vec<u8>, u32)>);
+pub type UmiGraph = (Graph<Vec<u8>, u32>, HashMap<NodeIndex, (Vec<u8>, u32)>);
 
 /// Construct a substring index from a slice of UMIs.
 ///
@@ -150,7 +150,8 @@ pub fn umi_graph(
         for j in potential_neighbors {
             // Ensure that we don't compute the distance between a UMI and itself
             if i != j {
-                let edit_distance = if use_levenshtein {
+                let edit_distance = 
+                if use_levenshtein {
                     levenshtein(&umis[i], &umis[j])
                 } else {
                     hamming(&umis[i], &umis[j]) as u32
@@ -277,11 +278,12 @@ pub fn find_true_umis(
     use_levenshtein: bool,
 ) -> Result<HashSet<Vec<u8>>, io::Error> {
     let mut umi_counts: HashMap<Vec<u8>, u32> = HashMap::new();
-    let bam_reader = bam::BamReader::from_path(input_bam_file, 11).unwrap();
 
-    for result in bam_reader {
-        let record = result.unwrap();
-        let qname = record.name();
+    let mut bam = Reader::from_path(input_bam_file).unwrap();
+    let mut record = Record::new();
+    while let Some(reader) = bam.read(&mut record) {
+        reader.expect("Failed to parse record");
+        let qname = record.qname();
 
         if let Some(captures) = READ_NAME_UMI_REGEX.captures(std::str::from_utf8(qname).unwrap()) {
             let umi = captures.get(1).unwrap().as_str().as_bytes().to_vec();
@@ -289,6 +291,24 @@ pub fn find_true_umis(
         }
     }
 
+    if umi_counts.is_empty() {
+        return Err(io::Error::new(io::ErrorKind::InvalidInput, "No UMIs found"));
+    }
+
+    let (graph, node_attributes) = umi_graph(&umi_counts, 1, use_levenshtein);
+
+    // Find the representative UMIs
+    let corrected_umis = get_representative_umis_bfs(&graph, &node_attributes);
+
+    Ok(corrected_umis)
+}
+
+/// Find the representative UMIs from miRNA or isomiR HashMap instead of SAM file
+pub fn find_true_isomir_umis(
+    umi_counts: HashMap<Vec<u8>, u32>,
+    use_levenshtein: bool,
+) -> Result<HashSet<Vec<u8>>, io::Error> {
+    
     if umi_counts.is_empty() {
         return Err(io::Error::new(io::ErrorKind::InvalidInput, "No UMIs found"));
     }
@@ -337,43 +357,40 @@ pub fn deduplicate_bam(
     input_bam_file: &str,
     sample_name: &String,
     true_umis: HashSet<Vec<u8>>,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<(), Box<dyn std::error::Error>> {
     // Open the input BAM file with 4 threads for reading
-    let bam_reader = bam::BamReader::from_path(input_bam_file, 4)?;
+    let mut bam_reader = Reader::from_path(input_bam_file)?;
 
     // Capture the header of the input BAM file for use in the output BAM file
-    let header = bam_reader.header().clone();
+    let header = Header::from_template(bam_reader.header());
 
     // Create an output BAM file with the same header as the input BAM file
     let output_file_path = format!("{}.dedup.bam", sample_name);
-    let mut bam_writer = bam::BamWriter::from_path(output_file_path, header)?;
+    let mut bam_writer = Writer::from_path(output_file_path, &header, Bam)?;
 
     // Initialize a HashMap to store observed combinations of UMIs and their mapping positions
-    let mut umis_and_positions_added: HashMap<(Vec<u8>, i32), bool> = HashMap::new();
+    let mut umis_and_positions_added: HashMap<(Vec<u8>, i64), bool> = HashMap::new();
 
     // Go through each read in the BAM file
-    for result in bam_reader {
+    for result in bam_reader.rc_records() {
         let record = result?;
 
         // Extract the UMI from the read's name by splitting the name by underscores and taking the last element
-        let qname = std::str::from_utf8(record.name())?;
+        let qname = std::str::from_utf8(record.qname())?;
         let umi: Vec<u8> = qname.split('_').last().unwrap().bytes().collect();
 
         // If the UMI exists and the combination of the UMI and the read's mapping position hasn't been observed before,
         // write the read to the output file and record the UMI-mapping position combination
         if true_umis.contains(&umi)
-            && !umis_and_positions_added.contains_key(&(umi.clone(), record.ref_id()))
+            && !umis_and_positions_added.contains_key(&(umi.clone(), record.pos()))
         {
             // Write the read to the output BAM file
             bam_writer.write(&record)?;
 
             // Record the observed combination of UMI and mapping position
-            umis_and_positions_added.insert((umi, record.ref_id()), true);
+            umis_and_positions_added.insert((umi, record.pos()), true);
         }
     }
-
-    // Close the output BAM file
-    bam_writer.finish()?;
 
     Ok(())
 }

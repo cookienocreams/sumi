@@ -73,8 +73,7 @@ pub fn get_q_score_probability(q_score: &[u8]) -> f32 {
 pub fn average_read_quality(input_fastq: &str) -> Result<f32, Box<dyn std::error::Error>> {
     let file = File::open(input_fastq)?;
 
-    let reader: Box<dyn Read> = 
-    if is_gzipped(input_fastq).expect("Fastqs checked in main file") {
+    let reader: Box<dyn Read> = if is_gzipped(input_fastq).expect("Fastqs checked in main file") {
         Box::new(flate2::read::GzDecoder::new(file))
     } else {
         Box::new(std::io::BufReader::new(file))

@@ -143,7 +143,7 @@ pub fn extract_umis_qiagen(
     let input_file = File::open(input_fastq)?;
 
     // Check if the file is gzipped or not
-    let reader: Box<dyn Read> = if is_gzipped(input_fastq).unwrap() {
+    let reader: Box<dyn Read> = if is_gzipped(input_fastq)? {
         Box::new(MultiGzDecoder::new(BufReader::new(input_file)))
     } else {
         Box::new(BufReader::new(input_file))

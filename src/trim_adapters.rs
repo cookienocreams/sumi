@@ -37,6 +37,7 @@ pub fn trim_adapters(
     fastqs: Vec<String>,
     library_type: HashMap<String, String>,
     minimum_length: u8,
+    maximum_length: u8,
     umi_regex: &Regex,
 ) -> Vec<String> {
     let num_of_fastqs = fastqs.len() as u64;
@@ -56,6 +57,7 @@ pub fn trim_adapters(
 
         // Create the strings before passing them to the vec
         let min_length_string = minimum_length.to_string();
+        let max_length_string = maximum_length.to_string();
         let too_short_output = format!("{}.short.fastq", sample_name);
 
         // Set cutadapt args to remove untrimmed reads and require a quality score > 20
@@ -63,7 +65,7 @@ pub fn trim_adapters(
             "--cores=0",
             "--discard-untrimmed",
             "--quality-cutoff",
-            "20",
+            "20,20",
             "--adapter",
         ];
 
@@ -78,6 +80,8 @@ pub fn trim_adapters(
                     &output_file_name,
                     "--minimum-length",
                     &min_length_string,
+                    "--maximum-length",
+                    &max_length_string,
                     "--too-short-output",
                     &too_short_output,
                     fastq_file,
@@ -93,7 +97,7 @@ pub fn trim_adapters(
 
                 // Call function to extract UMIs from each read
                 if let Some(extract) = Some(extract_umis) {
-                    let args = Some((sample_name, "_")).unwrap();
+                    let args = (sample_name, "_");
                     if let Err(e) = extract(args.0, args.1, umi_regex) {
                         eprintln!("Error when extracting UMIs: {:?}", e);
                     }
@@ -104,7 +108,7 @@ pub fn trim_adapters(
 
                 // Extraction must come first because trimming the 3' adapter first would remove the UMI
                 if let Some(extract) = Some(extract_umis_qiagen) {
-                    let args = Some((fastq_file, sample_name, "_")).unwrap();
+                    let args = (fastq_file, sample_name, "_");
                     if let Err(e) = extract(args.0, args.1, args.2) {
                         eprintln!("Error when extracting UMIs: {:?}", e);
                     }

@@ -58,7 +58,7 @@ pub fn count_reads(input_fastq: &str) -> Result<u64, Box<dyn std::error::Error>>
 /// let (file, count) = find_fastq_with_fewest_reads(files)?;
 /// println!("The file with the fewest reads is {} with {} reads.", file, count);
 /// ```
-fn find_fastq_with_fewest_reads(
+pub fn find_fastq_with_fewest_reads(
     input_fastqs: &[String],
     read_counts: &mut HashMap<String, usize>,
 ) -> Result<(String, u64), Box<dyn std::error::Error>> {
@@ -126,7 +126,7 @@ fn find_fastq_with_fewest_reads(
 /// # Errors
 ///
 /// This function will return an error if there is a problem reading the input file.
-fn subsample_file(
+pub fn subsample_file(
     input_file: &str,
     target_read_count: u32,
     rng_seed: Option<u64>,
@@ -199,7 +199,7 @@ fn subsample_file(
 /// # Errors
 ///
 /// This function will return an error if there is a problem writing to the output file.
-fn write_to_output(
+pub fn write_to_output(
     output_file: &str,
     reservoir: Vec<Vec<String>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
@@ -269,7 +269,7 @@ pub fn subsample_fastqs(
         Some(n) => (String::new(), n), // If a target_read_count is provided, set smallest_fastq_file to an empty string
         None => {
             let (file, count) = find_fastq_with_fewest_reads(&input_fastqs, &mut read_counts)?;
-            (file, count.try_into().unwrap()) // If not, find the file with the smallest read count
+            (file, count.try_into()?) // If not, find the file with the smallest read count
         }
     };
 
