@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/sample.rs`."><title>sample.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/sample.rs`."><title>sample.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -303,16 +303,33 @@
 <a href="#303" id="303">303</a>
 <a href="#304" id="304">304</a>
 <a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
 </pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::get_reader;
 <span class="kw">use </span><span class="kw">crate</span>::BufReader;
 <span class="kw">use </span><span class="kw">crate</span>::BufWriter;
+<span class="kw">use </span><span class="kw">crate</span>::File;
 <span class="kw">use </span><span class="kw">crate</span>::HashMap;
+<span class="kw">use </span><span class="kw">crate</span>::Path;
 <span class="kw">use </span><span class="kw">crate</span>::ProgressBar;
 <span class="kw">use </span><span class="kw">crate</span>::ProgressStyle;
-<span class="kw">use </span><span class="kw">crate</span>::Path;
-<span class="kw">use </span><span class="kw">crate</span>::File;
-<span class="kw">use </span>std::io::{BufRead, Write};
 <span class="kw">use </span>rand::{Rng, SeedableRng};
+<span class="kw">use </span>std::io::{BufRead, Write};
 
 <span class="doccomment">/// Count the number of reads in a FASTQ file.
 ///
@@ -322,8 +339,8 @@
 ///
 /// # Returns
 ///
-/// This function will return the number of reads in the input FASTQ file as a `Result&lt;u64, 
-/// Box&lt;dyn std::error::Error&gt;&gt;`. If an error occurs while reading the file, the error 
+/// This function will return the number of reads in the input FASTQ file as a `Result&lt;u64,
+/// Box&lt;dyn std::error::Error&gt;&gt;`. If an error occurs while reading the file, the error
 /// will be returned instead.
 ///
 /// # Examples
@@ -338,7 +355,7 @@
 
     <span class="kw">let </span>line_count = BufReader::new(<span class="kw-2">&amp;mut </span>reader)
         .lines()
-        .filter_map(Result::ok)
+        .map_while(Result::ok)
         .count();
 
     <span class="prelude-val">Ok</span>((line_count / <span class="number">4</span>) <span class="kw">as </span>u64)
@@ -352,8 +369,8 @@
 ///
 /// # Returns
 ///
-/// This function will return a tuple as a `Result&lt;(String, u64), Box&lt;dyn std::error::Error&gt;&gt;` 
-/// with the name of the file with the fewest reads and the count of those reads. 
+/// This function will return a tuple as a `Result&lt;(String, u64), Box&lt;dyn std::error::Error&gt;&gt;`
+/// with the name of the file with the fewest reads and the count of those reads.
 /// If an error occurs while reading any of the files, the error will be returned instead.
 ///
 /// # Examples
@@ -363,11 +380,13 @@
 /// let (file, count) = find_fastq_with_fewest_reads(files)?;
 /// println!(&quot;The file with the fewest reads is {} with {} reads.&quot;, file, count);
 /// ```
-</span><span class="kw">fn </span>find_fastq_with_fewest_reads(input_fastqs: <span class="kw-2">&amp;</span>[String], read_counts: <span class="kw-2">&amp;mut </span>HashMap&lt;String, usize&gt;) 
-                                -&gt; <span class="prelude-ty">Result</span>&lt;(String, u64), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
+</span><span class="kw">pub fn </span>find_fastq_with_fewest_reads(
+    input_fastqs: <span class="kw-2">&amp;</span>[String],
+    read_counts: <span class="kw-2">&amp;mut </span>HashMap&lt;String, usize&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(String, u64), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="kw">let </span>num_of_fastqs = input_fastqs.len() <span class="kw">as </span>u64;
     <span class="kw">let </span>progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template(<span class="string">&quot;{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)&quot;</span>)
@@ -390,7 +409,7 @@
                 count
             }
         };
-        
+
         <span class="kw">if </span>count &lt; min_reads <span class="kw">as </span>usize {
             min_reads = count <span class="kw">as </span>u64;
             min_index = index;
@@ -398,7 +417,7 @@
 
         progress_br.inc(<span class="number">1</span>);
     }
-    
+
     progress_br.finish_with_message(<span class="string">&quot;Finished counting the number of reads in the fastq files&quot;</span>);
 
     <span class="prelude-val">Ok</span>((input_fastqs[min_index].clone(), min_reads))
@@ -415,22 +434,25 @@
 ///
 /// # Description
 ///
-/// This function randomly selects a subset of reads from an input FASTQ file using 
-/// Algorithm R for reservoir sampling. The number of reads selected is determined by 
-/// the `target_read_count` argument. The input file is read only once, and the selection 
-/// process does not require knowledge of the total number of reads in the input file. 
+/// This function randomly selects a subset of reads from an input FASTQ file using
+/// Algorithm R for reservoir sampling. The number of reads selected is determined by
+/// the `target_read_count` argument. The input file is read only once, and the selection
+/// process does not require knowledge of the total number of reads in the input file.
 ///
 /// # Returns
 ///
-/// This function returns a Result containing a vector of vectors of Strings. Each vector 
-/// of Strings represents a selected read from the input file and its corresponding line 
+/// This function returns a Result containing a vector of vectors of Strings. Each vector
+/// of Strings represents a selected read from the input file and its corresponding line
 /// in the FASTQ file.
 ///
 /// # Errors
 ///
 /// This function will return an error if there is a problem reading the input file.
-</span><span class="kw">fn </span>subsample_file(input_file: <span class="kw-2">&amp;</span>str, target_read_count: u32, rng_seed: <span class="prelude-ty">Option</span>&lt;u64&gt;) 
-    -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Vec&lt;String&gt;&gt;, Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
+</span><span class="kw">pub fn </span>subsample_file(
+    input_file: <span class="kw-2">&amp;</span>str,
+    target_read_count: u32,
+    rng_seed: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Vec&lt;String&gt;&gt;, Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="comment">// Create a random number generator
     </span><span class="kw">let </span><span class="kw-2">mut </span>rng = <span class="kw">match </span>rng_seed {
         <span class="prelude-val">Some</span>(rng) =&gt; rand_chacha::ChaCha8Rng::seed_from_u64(rng),
@@ -452,17 +474,15 @@
     <span class="comment">// While there are still lines in the file...
     </span><span class="kw">loop </span>{
         <span class="comment">// Read one read
-        </span><span class="kw">let </span>read: Vec&lt;String&gt; = read_lines.by_ref().take(<span class="number">4</span>)
-            .filter_map(Result::ok)
-            .collect();
+        </span><span class="kw">let </span>read: Vec&lt;String&gt; = read_lines.by_ref().take(<span class="number">4</span>).filter_map(Result::ok).collect();
 
         <span class="comment">// If less than 4 lines were read, break the loop
         </span><span class="kw">if </span>read.len() &lt; <span class="number">4 </span>{
             <span class="kw">break</span>;
         }
-        
+
         n += <span class="number">1</span>; <span class="comment">// Increment the total read count
-        
+
         </span><span class="kw">if </span>n &lt;= target_read_count {
             <span class="comment">// If we have not yet reached the target number of reads, just store the read in the reservoir
             </span>reservoir.push(read);
@@ -485,24 +505,26 @@
 /// # Arguments
 ///
 /// * `output_file` - A string reference that holds the name of the output FASTQ file.
-/// * `reservoir` - A vector of vectors of Strings. Each vector of Strings represents a 
+/// * `reservoir` - A vector of vectors of Strings. Each vector of Strings represents a
 /// selected read and its corresponding line in the FASTQ file.
 ///
 /// # Description
 ///
-/// This function writes the reads selected by the `subsample_file` function to an output FASTQ file. 
+/// This function writes the reads selected by the `subsample_file` function to an output FASTQ file.
 /// Each read is written as a block of four lines, corresponding to the standard FASTQ format.
 ///
 /// # Returns
 ///
-/// This function returns a Result type indicating whether the writing was successful. If the writing is successful, 
+/// This function returns a Result type indicating whether the writing was successful. If the writing is successful,
 /// the function returns Ok(()). If there is a problem writing to the file, the function returns an error.
 ///
 /// # Errors
 ///
 /// This function will return an error if there is a problem writing to the output file.
-</span><span class="kw">fn </span>write_to_output(output_file: <span class="kw-2">&amp;</span>str, reservoir: Vec&lt;Vec&lt;String&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
-
+</span><span class="kw">pub fn </span>write_to_output(
+    output_file: <span class="kw-2">&amp;</span>str,
+    reservoir: Vec&lt;Vec&lt;String&gt;&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="comment">// Write the selected reads to the output FASTQ file
     </span><span class="kw">let </span>file = File::create(output_file)<span class="question-mark">?</span>;
     <span class="kw">let </span><span class="kw-2">mut </span>writer = BufWriter::new(file);
@@ -529,13 +551,13 @@
 /// # Description
 ///
 /// This function randomly selects a subset of reads from each input FASTQ file and writes them
-/// to corresponding output FASTQ files, with the names based on `sample_names` followed by a `_subsample.fastq` suffix. 
-/// The number of reads selected is determined by the `target_read_count` argument. 
-/// If `target_read_count` is None, the function selects a number equal to the smallest number 
-/// of reads across all input files. This function uses Algorithm R for reservoir sampling to select a random 
-/// subset of reads from the input file. The input file is read only once, and the selection process does 
-/// not require knowledge of the total number of reads in the input file. Therefore, this function is 
-/// more memory-efficient and can handle larger files than methods that require reading the entire file 
+/// to corresponding output FASTQ files, with the names based on `sample_names` followed by a `_subsample.fastq` suffix.
+/// The number of reads selected is determined by the `target_read_count` argument.
+/// If `target_read_count` is None, the function selects a number equal to the smallest number
+/// of reads across all input files. This function uses Algorithm R for reservoir sampling to select a random
+/// subset of reads from the input file. The input file is read only once, and the selection process does
+/// not require knowledge of the total number of reads in the input file. Therefore, this function is
+/// more memory-efficient and can handle larger files than methods that require reading the entire file
 /// into memory.
 ///
 /// Algorithm R works by filling the reservoir with the first `k` items from the input. Each remaining item is then given
@@ -545,7 +567,7 @@
 ///
 /// # Returns
 ///
-/// This function does not return a value. It writes the selected reads to the output FASTQ files, 
+/// This function does not return a value. It writes the selected reads to the output FASTQ files,
 /// each named based on corresponding `sample_name` with a `_subsample.fastq` suffix.
 ///
 /// # Example
@@ -555,11 +577,12 @@
 /// let sample_names = vec![&quot;sample1&quot;, &quot;sample2&quot;];
 /// subsample_fastqs(input_fastqs, sample_names, Some(1000)).expect(&quot;Failed to subsample fastqs&quot;);
 /// ```
-</span><span class="kw">pub fn </span>subsample_fastqs(input_fastqs: Vec&lt;String&gt;
-                        , sample_names: Vec&lt;String&gt;
-                        , target_read_count: <span class="prelude-ty">Option</span>&lt;u32&gt;
-                        , rng_seed: <span class="prelude-ty">Option</span>&lt;u64&gt;) 
-                    -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
+</span><span class="kw">pub fn </span>subsample_fastqs(
+    input_fastqs: Vec&lt;String&gt;,
+    sample_names: Vec&lt;String&gt;,
+    target_read_count: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+    rng_seed: <span class="prelude-ty">Option</span>&lt;u64&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="comment">// Add a HashMap to store the read counts
     </span><span class="kw">let </span><span class="kw-2">mut </span>read_counts: HashMap&lt;String, usize&gt; = HashMap::new();
 
@@ -568,7 +591,7 @@
         <span class="prelude-val">Some</span>(n) =&gt; (String::new(), n), <span class="comment">// If a target_read_count is provided, set smallest_fastq_file to an empty string
         </span><span class="prelude-val">None </span>=&gt; {
             <span class="kw">let </span>(file, count) = find_fastq_with_fewest_reads(<span class="kw-2">&amp;</span>input_fastqs, <span class="kw-2">&amp;mut </span>read_counts)<span class="question-mark">?</span>;
-            (file, count.try_into().unwrap()) <span class="comment">// If not, find the file with the smallest read count
+            (file, count.try_into()<span class="question-mark">?</span>) <span class="comment">// If not, find the file with the smallest read count
         </span>}
     };
 
@@ -576,17 +599,28 @@
     </span><span class="kw">if </span>!smallest_fastq_file.is_empty() {
         <span class="comment">// Copy the smallest fastq file with a new name to match the processed files
         </span><span class="kw">let </span>smallest_fastq_file_path = Path::new(<span class="kw-2">&amp;</span>smallest_fastq_file);
-        <span class="kw">let </span>smallest_fastq_file_stem = smallest_fastq_file_path.file_stem().unwrap().to_str().unwrap();
-        <span class="kw">let </span>smallest_fastq_file_extension = smallest_fastq_file_path.extension().unwrap().to_str().unwrap();
+        <span class="kw">let </span>smallest_fastq_file_stem = smallest_fastq_file_path
+            .file_stem()
+            .unwrap()
+            .to_str()
+            .unwrap();
+        <span class="kw">let </span>smallest_fastq_file_extension = smallest_fastq_file_path
+            .extension()
+            .unwrap()
+            .to_str()
+            .unwrap();
 
-        <span class="kw">let </span>smallest_fastq_file_copy = <span class="macro">format!</span>(<span class="string">&quot;{}_subsample.{}&quot;</span>, smallest_fastq_file_stem, smallest_fastq_file_extension);
+        <span class="kw">let </span>smallest_fastq_file_copy = <span class="macro">format!</span>(
+            <span class="string">&quot;{}_subsample.{}&quot;</span>,
+            smallest_fastq_file_stem, smallest_fastq_file_extension
+        );
         std::fs::copy(<span class="kw-2">&amp;</span>smallest_fastq_file, <span class="kw-2">&amp;</span>smallest_fastq_file_copy)<span class="question-mark">?</span>;
     }
 
     <span class="comment">// Create a progress bar
     </span><span class="kw">let </span>num_of_fastqs = input_fastqs.len() <span class="kw">as </span>u64;
     <span class="kw">let </span>progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template(<span class="string">&quot;{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)&quot;</span>)
@@ -594,16 +628,16 @@
             .progress_chars(<span class="string">&quot;#&gt;-&quot;</span>),
     );
     progress_br.set_message(<span class="string">&quot;Subsampling fastq files...&quot;</span>);
-    
+
     <span class="comment">// Subsample fastq files
     </span><span class="kw">for </span>(fastq, sample_name) <span class="kw">in </span>input_fastqs.iter().zip(sample_names.iter()) {
         <span class="kw">let </span>reservoir = subsample_file(fastq, target_read_count, rng_seed)<span class="question-mark">?</span>;
         <span class="kw">let </span>output_filename = <span class="macro">format!</span>(<span class="string">&quot;{}_subsample.fastq&quot;</span>, sample_name);
-        <span class="kw">let _ </span>= write_to_output(<span class="kw-2">&amp;</span>output_filename, reservoir)<span class="question-mark">?</span>;
+        write_to_output(<span class="kw-2">&amp;</span>output_filename, reservoir)<span class="question-mark">?</span>;
 
         progress_br.inc(<span class="number">1</span>);
     }
-    
+
     progress_br.finish_with_message(<span class="string">&quot;Finished subsampling fastq files&quot;</span>);
 
     <span class="prelude-val">Ok</span>(())

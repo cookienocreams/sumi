@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/main.rs`."><title>main.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -582,59 +582,252 @@
 <a href="#582" id="582">582</a>
 <a href="#583" id="583">583</a>
 <a href="#584" id="584">584</a>
-</pre></div><pre class="rust"><code><span class="kw">mod </span>sample;
-<span class="kw">mod </span>trim_adapters;
-<span class="kw">mod </span>extract_umis;
-<span class="kw">mod </span>graph;
-<span class="kw">mod </span>rna_counts;
-<span class="kw">mod </span>thresholds;
-<span class="kw">mod </span>lengths;
-<span class="kw">mod </span>common;
-<span class="kw">mod </span>quality;
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
+<a href="#627" id="627">627</a>
+<a href="#628" id="628">628</a>
+<a href="#629" id="629">629</a>
+<a href="#630" id="630">630</a>
+<a href="#631" id="631">631</a>
+<a href="#632" id="632">632</a>
+<a href="#633" id="633">633</a>
+<a href="#634" id="634">634</a>
+<a href="#635" id="635">635</a>
+<a href="#636" id="636">636</a>
+<a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
+<a href="#655" id="655">655</a>
+<a href="#656" id="656">656</a>
+<a href="#657" id="657">657</a>
+<a href="#658" id="658">658</a>
+<a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
+<a href="#665" id="665">665</a>
+<a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
+<a href="#732" id="732">732</a>
+<a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
+<a href="#754" id="754">754</a>
+<a href="#755" id="755">755</a>
+<a href="#756" id="756">756</a>
+<a href="#757" id="757">757</a>
+<a href="#758" id="758">758</a>
+<a href="#759" id="759">759</a>
+<a href="#760" id="760">760</a>
+<a href="#761" id="761">761</a>
+<a href="#762" id="762">762</a>
+<a href="#763" id="763">763</a>
+<a href="#764" id="764">764</a>
+<a href="#765" id="765">765</a>
+<a href="#766" id="766">766</a>
+<a href="#767" id="767">767</a>
+<a href="#768" id="768">768</a>
+<a href="#769" id="769">769</a>
+<a href="#770" id="770">770</a>
+<a href="#771" id="771">771</a>
+<a href="#772" id="772">772</a>
+<a href="#773" id="773">773</a>
+<a href="#774" id="774">774</a>
+<a href="#775" id="775">775</a>
+</pre></div><pre class="rust"><code><span class="kw">pub mod </span>common;
+<span class="kw">pub mod </span>extract_umis;
+<span class="kw">pub mod </span>graph;
+<span class="kw">pub mod </span>lengths;
+<span class="kw">pub mod </span>quality;
+<span class="kw">pub mod </span>rna_counts;
+<span class="kw">pub mod </span>sample;
+<span class="kw">pub mod </span>thresholds;
+<span class="kw">pub mod </span>trim_adapters;
+<span class="kw">pub mod </span>isomirs;
 
-<span class="kw">use </span><span class="kw">crate</span>::sample::count_reads;
-<span class="kw">use </span><span class="kw">crate</span>::sample::subsample_fastqs;
-<span class="kw">use </span><span class="kw">crate</span>::trim_adapters::trim_adapters;
-<span class="kw">use </span><span class="kw">crate</span>::extract_umis::extract_umis;
-<span class="kw">use </span><span class="kw">crate</span>::extract_umis::extract_umis_qiagen;
-<span class="kw">use </span><span class="kw">crate</span>::rna_counts::rna_discovery_calculation;
-<span class="kw">use </span><span class="kw">crate</span>::lengths::calculate_read_length_distribution;
-<span class="kw">use </span><span class="kw">crate</span>::thresholds::threshold_count;
-<span class="kw">use </span><span class="kw">crate</span>::thresholds::combine_threshold_counts;
 <span class="kw">use </span><span class="kw">crate</span>::common::find_common_rnas;
 <span class="kw">use </span><span class="kw">crate</span>::common::write_common_rna_file;
+<span class="kw">use </span><span class="kw">crate</span>::extract_umis::extract_umis;
+<span class="kw">use </span><span class="kw">crate</span>::extract_umis::extract_umis_qiagen;
+<span class="kw">use </span><span class="kw">crate</span>::lengths::calculate_read_length_distribution;
+<span class="kw">use </span><span class="kw">crate</span>::rna_counts::rna_discovery_calculation;
+<span class="kw">use </span><span class="kw">crate</span>::sample::count_reads;
+<span class="kw">use </span><span class="kw">crate</span>::sample::subsample_fastqs;
+<span class="kw">use </span><span class="kw">crate</span>::thresholds::combine_threshold_counts;
+<span class="kw">use </span><span class="kw">crate</span>::thresholds::threshold_count;
+<span class="kw">use </span><span class="kw">crate</span>::trim_adapters::trim_adapters;
+<span class="kw">use </span><span class="kw">crate</span>::graph::find_true_isomir_umis;
 
-<span class="kw">extern crate </span>bam;
 <span class="comment">// Import the `lazy_static` macro
 </span><span class="attr">#[macro_use]
 </span><span class="kw">extern crate </span>lazy_static;
 
+<span class="kw">use </span>bio::alignment::distance::simd::<span class="kw-2">*</span>;
+<span class="kw">use </span>clap::{App, Arg};
+<span class="kw">use </span>csv::{Reader <span class="kw">as </span>csv_reader, Writer <span class="kw">as </span>csv_writer};
+<span class="kw">use </span>glob::glob;
+<span class="kw">use </span>indicatif::{ProgressBar, ProgressStyle};
+<span class="kw">use </span>niffler::get_reader;
 <span class="kw">use </span>petgraph::graph::NodeIndex;
 <span class="kw">use </span>petgraph::Graph;
-<span class="kw">use </span>std::collections::{HashMap, HashSet};
-<span class="kw">use </span>std::str;
-<span class="kw">use </span>regex::Regex;
-<span class="kw">use </span>std::process::Command;
-<span class="kw">use </span>std::path::Path;
-<span class="kw">use </span>std::fs::{<span class="self">self</span>, File};
-<span class="kw">use </span>thiserror::Error;
-<span class="kw">use </span>clap::{App, Arg};
 <span class="kw">use </span>polars::prelude::<span class="kw-2">*</span>;
-<span class="kw">use </span>std::io::{<span class="self">self</span>, BufReader, BufWriter, Read};
-<span class="kw">use </span>indicatif::{ProgressBar, ProgressStyle};
+<span class="kw">use </span>regex::Regex;
+<span class="kw">use </span>std::collections::{HashMap, HashSet};
 <span class="kw">use </span>std::error::Error;
-<span class="kw">use </span>niffler::get_reader;
-<span class="kw">use </span>csv::{Reader <span class="kw">as </span>csv_reader, Writer <span class="kw">as </span>csv_writer};
-<span class="kw">use </span>bio::alignment::distance::simd::<span class="kw-2">*</span>;
+<span class="kw">use </span>std::fs::{<span class="self">self</span>, File};
+<span class="kw">use </span>std::io::{<span class="self">self</span>, BufReader, BufWriter, Read};
+<span class="kw">use </span>std::path::Path;
+<span class="kw">use </span>std::process::Command;
+<span class="kw">use </span>std::str;
+<span class="kw">use </span>thiserror::Error;
 
 <span class="macro">lazy_static! </span>{
     <span class="doccomment">/// Define the regex to extract index information and UMI and index information
-    </span><span class="kw">static </span><span class="kw-2">ref </span>SINGLE_INDEX_REGEX: Regex = Regex::new(<span class="string">r&quot;1:N:\d:[ATCGN]+&quot;</span>).unwrap();
-    <span class="kw">static </span><span class="kw-2">ref </span>DUAL_INDEX_REGEX: Regex = Regex::new(<span class="string">r&quot;1:N:\d:[ATCGN]+\+[ATCGN]+&quot;</span>).unwrap();
-    <span class="kw">static </span><span class="kw-2">ref </span>READ_NAME_UMI_REGEX: Regex = Regex::new(<span class="string">r&quot;_([ATCG]+)&quot;</span>).unwrap();
-    <span class="kw">static </span><span class="kw-2">ref </span>UMI_REGEX_QIAGEN: Regex = Regex::new(<span class="string">r&quot;AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG&quot;</span>).unwrap();
-    <span class="kw">static </span><span class="kw-2">ref </span>NUM_CAPTURE_REGEX: Regex =  Regex::new(<span class="string">r&quot;\.\{(\d+)\}&quot;</span>).unwrap();
-    <span class="kw">static </span><span class="kw-2">ref </span>BASE_CAPTURE_REGEX: Regex = Regex::new(<span class="string">r&quot;[ATCG]+&quot;</span>).unwrap();
+    </span><span class="kw">pub static </span><span class="kw-2">ref </span>SINGLE_INDEX_REGEX: Regex = Regex::new(<span class="string">r&quot;1:N:\d:[ATCGN]+&quot;</span>).unwrap();
+    <span class="kw">pub static </span><span class="kw-2">ref </span>DUAL_INDEX_REGEX: Regex = Regex::new(<span class="string">r&quot;1:N:\d:[ATCGN]+\+[ATCGN]+&quot;</span>).unwrap();
+    <span class="kw">pub static </span><span class="kw-2">ref </span>READ_NAME_UMI_REGEX: Regex = Regex::new(<span class="string">r&quot;_([ATCG]+)&quot;</span>).unwrap();
+    <span class="kw">pub static </span><span class="kw-2">ref </span>UMI_REGEX_QIAGEN: Regex = Regex::new(<span class="string">r&quot;AACTGTAGGCACCATCAAT([ATCG]{12})AGATCGGAAG&quot;</span>).unwrap();
+    <span class="kw">pub static </span><span class="kw-2">ref </span>NUM_CAPTURE_REGEX: Regex =  Regex::new(<span class="string">r&quot;\.\{(\d+)\}&quot;</span>).unwrap();
+    <span class="kw">pub static </span><span class="kw-2">ref </span>BASE_CAPTURE_REGEX: Regex = Regex::new(<span class="string">r&quot;[ATCG]+&quot;</span>).unwrap();
 }
 
 <span class="doccomment">/// The `Config` struct is used to store the configuration settings for the analysis.
@@ -642,6 +835,7 @@
 /// # Fields
 ///
 /// * `minimum_length` - The minimum length a fragment needs to be to be analyzed.
+/// * `maximum_length` - The maximum length a fragment needs to be to be analyzed.
 /// * `num_threads` - The number of threads to be used for the analysis.
 /// * `keep_intermediate_files` - A flag indicating whether to keep intermediate files generated during the analysis.
 /// * `alignment_reference` - The reference sequence for alignment.
@@ -654,9 +848,13 @@
 /// * `levenshtein_distance` - A flag indicating whether to compute the Levenshtein distance for the reads.
 /// * `umi_regex` - A regular expression used to match Unique Molecular Identifiers (UMIs) in the reads.
 /// * `write_metrics` - A flag indicating whether to include RNA alignment, quality scores, and read counts in an output file.
+/// * `isomirs` - A flag indicating whether to count the occurrence of isomiRs with base additions or deletions on either end.
+/// * `max_isomir_diff` - The maximum number of additional bases to be considered for extension or deletion on each end.
+/// * `mismatch` - A flag indicating whether to allow a 1 bp mismatch during alignment.
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>Config {
     minimum_length: u8,
+    maximum_length: u8,
     num_threads: u8,
     keep_intermediate_files: bool,
     alignment_reference: String,
@@ -669,6 +867,9 @@
     levenshtein_distance: bool,
     umi_regex: String,
     write_metrics: bool,
+    isomirs: bool,
+    max_isomir_diff: usize,
+    mismatch: bool,
 }
 
 <span class="kw">impl </span>Config {
@@ -684,6 +885,7 @@
     </span><span class="kw">fn </span>new(matches: clap::ArgMatches) -&gt; <span class="self">Self </span>{
         <span class="comment">// Parse the command-line arguments
         </span><span class="kw">let </span>minimum_length = <span class="kw-2">*</span>matches.get_one(<span class="string">&quot;minimum_length&quot;</span>).unwrap();
+        <span class="kw">let </span>maximum_length = <span class="kw-2">*</span>matches.get_one(<span class="string">&quot;maximum_length&quot;</span>).unwrap();
         <span class="kw">let </span>num_threads = <span class="kw-2">*</span>matches.get_one(<span class="string">&quot;num_threads&quot;</span>).unwrap();
         <span class="kw">let </span>keep_intermediate_files = matches.is_present(<span class="string">&quot;keep_intermediate_files&quot;</span>);
         <span class="kw">let </span>alignment_reference = matches.value_of(<span class="string">&quot;alignment_reference&quot;</span>).unwrap().to_string();
@@ -705,15 +907,21 @@
         <span class="kw">let </span>qiagen = matches.is_present(<span class="string">&quot;qiagen&quot;</span>);
         <span class="kw">let </span>write_metrics = matches.is_present(<span class="string">&quot;write_metrics&quot;</span>);
         <span class="kw">let </span>thresholds = <span class="kw">match </span>matches.values_of(<span class="string">&quot;thresholds&quot;</span>) {
-            <span class="prelude-val">Some</span>(values) =&gt; values.map(|x| x.parse::&lt;usize&gt;().expect(<span class="string">&quot;Threshold must be a number.&quot;</span>)).collect(),
+            <span class="prelude-val">Some</span>(values) =&gt; values
+                .map(|x| x.parse::&lt;usize&gt;().expect(<span class="string">&quot;Threshold must be a number.&quot;</span>))
+                .collect(),
             <span class="prelude-val">None </span>=&gt; <span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">3</span>, <span class="number">5</span>, <span class="number">10</span>],
         };
         <span class="kw">let </span>include_unaligned_reads = matches.is_present(<span class="string">&quot;include_unaligned_reads&quot;</span>);
         <span class="kw">let </span>levenshtein_distance = matches.is_present(<span class="string">&quot;levenshtein_distance&quot;</span>);
         <span class="kw">let </span>umi_regex = matches.value_of(<span class="string">&quot;umi_regex&quot;</span>).unwrap().to_string();
+        <span class="kw">let </span>isomirs = matches.is_present(<span class="string">&quot;isomirs&quot;</span>);
+        <span class="kw">let </span>max_isomir_diff = <span class="kw-2">*</span>matches.get_one(<span class="string">&quot;max_isomir_diff&quot;</span>).unwrap();
+        <span class="kw">let </span>mismatch = matches.is_present(<span class="string">&quot;mismatch&quot;</span>);
 
         <span class="self">Self </span>{
             minimum_length,
+            maximum_length,
             num_threads,
             keep_intermediate_files,
             alignment_reference,
@@ -726,6 +934,9 @@
             levenshtein_distance,
             umi_regex,
             write_metrics,
+            isomirs,
+            max_isomir_diff,
+            mismatch,
         }
     }
 }
@@ -746,7 +957,34 @@
 /// let target_files = capture_target_files(&quot;.txt&quot;);
 /// // target_files is [&quot;file1.txt&quot;, &quot;file2.txt&quot;, &quot;file3.txt&quot;]
 /// ```
-</span><span class="kw">pub fn </span>capture_target_files(files_to_capture: <span class="kw-2">&amp;</span>str) -&gt; Vec&lt;String&gt; {
+</span><span class="kw">pub fn </span>capture_target_files(files_to_capture: <span class="kw-2">&amp;</span>str, fasta_search: bool) -&gt; Vec&lt;String&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>files: Vec&lt;String&gt; = Vec::new();
+    <span class="kw">let </span>pattern = 
+    <span class="kw">if </span>!fasta_search {
+        <span class="macro">format!</span>(<span class="string">&quot;*{}*&quot;</span>, files_to_capture)
+    } <span class="kw">else </span>{ 
+        <span class="macro">format!</span>(<span class="string">&quot;{}*&quot;</span>, files_to_capture)
+    };
+
+    <span class="kw">for </span>entry <span class="kw">in </span>glob(<span class="kw-2">&amp;</span>pattern).expect(<span class="string">&quot;Failed to read glob pattern&quot;</span>) {
+        <span class="kw">match </span>entry {
+            <span class="prelude-val">Ok</span>(path) =&gt; {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(filename) = path.file_name() {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(filename) = filename.to_str() {
+                        files.push(filename.to_string());
+                    }
+                }
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">println!</span>(<span class="string">&quot;{:?}&quot;</span>, e),
+        }
+    }
+
+    files.sort_unstable();
+
+    files
+}
+
+<span class="kw">pub fn </span>capture_files_to_delete(files_to_capture: <span class="kw-2">&amp;</span>str) -&gt; Vec&lt;String&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>files: Vec&lt;String&gt; = Vec::new();
     <span class="kw">let </span>pattern = <span class="macro">format!</span>(<span class="string">&quot;*{}*&quot;</span>, files_to_capture);
 
@@ -758,7 +996,7 @@
                         files.push(filename.to_string());
                     }
                 }
-            },
+            }
             <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">println!</span>(<span class="string">&quot;{:?}&quot;</span>, e),
         }
     }
@@ -771,8 +1009,8 @@
 <span class="doccomment">/// Check if a file is gzipped by reading the first two bytes and comparing them to the gzip magic numbers
 </span><span class="kw">pub fn </span>is_gzipped(filename: <span class="kw-2">&amp;</span>str) -&gt; io::Result&lt;bool&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>file = File::open(filename)<span class="question-mark">?</span>;
-    <span class="kw">let </span><span class="kw-2">mut </span>buffer = [<span class="number">0</span>; <span class="number">2</span>];  <span class="comment">// Buffer to store the first two bytes
-    </span>file.read(<span class="kw-2">&amp;mut </span>buffer)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>buffer = [<span class="number">0</span>; <span class="number">2</span>]; <span class="comment">// Buffer to store the first two bytes
+    </span>file.read_exact(<span class="kw-2">&amp;mut </span>buffer)<span class="question-mark">?</span>;
     <span class="prelude-val">Ok</span>(buffer == [<span class="number">0x1f</span>, <span class="number">0x8b</span>])
 }
 
@@ -784,9 +1022,9 @@
 /// # Arguments
 ///
 /// * `input_regex` - A string slice that holds the regex pattern used for UMI extraction.
-/// * `minimum_length` - A u8 value that specifies the minimum fragment length without 
+/// * `minimum_length` - A u8 value that specifies the minimum fragment length without
 /// considering UMI length.
-/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value 
+/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value
 /// affects how the minimum length is calculated.
 ///
 /// # Returns
@@ -802,9 +1040,9 @@
 /// let min_length = 16;
 /// let is_qiagen = false;
 ///
-/// let minimum_length = calculate_lengths(input_regex, min_length, is_qiagen);
+/// let minimum_length = calculate_minimum_length(input_regex, min_length, is_qiagen);
 /// ```
-</span><span class="kw">fn </span>calculate_minimum_length(input_regex: <span class="kw-2">&amp;</span>str, minimum_length: u8, is_qiagen: bool) -&gt; u8 {
+</span><span class="kw">pub fn </span>calculate_minimum_length(input_regex: <span class="kw-2">&amp;</span>str, minimum_length: u8, is_qiagen: bool) -&gt; u8 {
     <span class="kw">let </span><span class="kw-2">mut </span>umi_sum: u8 = <span class="number">0</span>;
 
     <span class="comment">// Get length of UMI by combining the numbers in the capture groups in the regex pattern
@@ -823,16 +1061,73 @@
     </span><span class="kw">let </span><span class="kw-2">mut </span>min_length = minimum_length;
     <span class="kw">let </span>umi_length = <span class="kw">if </span>umi_sum != <span class="number">12 </span>{ umi_sum } <span class="kw">else </span>{ <span class="number">12 </span>};
 
-    min_length = 
-        <span class="kw">if </span>min_length != <span class="number">16 </span>&amp;&amp; !is_qiagen { 
-            min_length + umi_length 
-        } <span class="kw">else if </span>min_length == <span class="number">16 </span>&amp;&amp; !is_qiagen {
-            <span class="number">16 </span>+ umi_length
-        } <span class="kw">else </span>{
-            <span class="number">16 </span><span class="comment">// Set minimum length for Qiagen to 16 since the UMI is on the 3&#39; end after the adapter
-        </span>};
+    min_length = <span class="kw">if </span>min_length != <span class="number">16 </span>&amp;&amp; !is_qiagen {
+        min_length + umi_length
+    } <span class="kw">else if </span>min_length == <span class="number">16 </span>&amp;&amp; !is_qiagen {
+        <span class="number">16 </span>+ umi_length
+    } <span class="kw">else </span>{
+        <span class="number">16 </span><span class="comment">// Set minimum length for Qiagen to 16 since the UMI is on the 3&#39; end after the adapter
+    </span>};
 
     min_length
+}
+
+<span class="doccomment">/// Calculates the maximum length to allow post adapter trimming.
+///
+/// This function extracts the length of UMI and intermediate bases from the given regex pattern,
+/// and then calculates the maximum length of a fragment taking the UMI length into account.
+///
+/// # Arguments
+///
+/// * `input_regex` - A string slice that holds the regex pattern used for UMI extraction.
+/// * `maximum` - A u8 value that specifies the maximum fragment length without
+/// considering UMI length.
+/// * `is_qiagen` - A bool value that indicates whether the used kit is Qiagen. This value
+/// affects how the maximum length is calculated.
+///
+/// # Returns
+///
+/// * A tuple `(umi_length, max_length)` where:
+///   * `umi_length` is the calculated length of the UMI and intermediate bases.
+///   * `min_length` is the calculated maximum length of a fragment considering UMI length.
+///
+/// # Examples
+///
+/// ```
+/// let input_regex = &quot;^(.{12})&quot;;
+/// let max_length = 30;
+/// let is_qiagen = false;
+///
+/// let maximum_length = calculate_maximum_length(input_regex, max_length, is_qiagen);
+/// ```
+</span><span class="kw">pub fn </span>calculate_maximum_length(input_regex: <span class="kw-2">&amp;</span>str, maximum_length: u8, is_qiagen: bool) -&gt; u8 {
+    <span class="kw">let </span><span class="kw-2">mut </span>umi_sum: u8 = <span class="number">0</span>;
+
+    <span class="comment">// Get length of UMI by combining the numbers in the capture groups in the regex pattern
+    </span><span class="kw">for </span>captures <span class="kw">in </span>NUM_CAPTURE_REGEX.captures_iter(input_regex) {
+        <span class="kw">if let </span><span class="prelude-val">Ok</span>(num) = captures[<span class="number">1</span>].parse::&lt;u8&gt;() {
+            umi_sum += num;
+        }
+    }
+
+    <span class="comment">// Get length of intermediate bases between UMI groups if present
+    </span><span class="kw">for </span>capture <span class="kw">in </span>BASE_CAPTURE_REGEX.find_iter(input_regex) {
+        umi_sum += capture.as_str().len() <span class="kw">as </span>u8;
+    }
+
+    <span class="comment">// Set the minimum fragment length taking UMI length into account
+    </span><span class="kw">let </span><span class="kw-2">mut </span>max_length = maximum_length;
+    <span class="kw">let </span>umi_length = <span class="kw">if </span>umi_sum != <span class="number">12 </span>{ umi_sum } <span class="kw">else </span>{ <span class="number">12 </span>};
+
+    max_length = <span class="kw">if </span>max_length != <span class="number">30 </span>&amp;&amp; !is_qiagen {
+        max_length + umi_length
+    } <span class="kw">else if </span>max_length == <span class="number">30 </span>&amp;&amp; !is_qiagen {
+        <span class="number">30 </span>+ umi_length
+    } <span class="kw">else </span>{
+        <span class="number">30 </span><span class="comment">// Set maximum length for Qiagen to 30 since the UMI is on the 3&#39; end after the adapter
+    </span>};
+
+    max_length
 }
 
 <span class="doccomment">/// Find how many reads are in each fastq file.
@@ -844,8 +1139,8 @@
 ///
 /// # Returns
 ///
-/// This function will return a HashMap as a Result&lt;HashMap&lt;String, u64&gt;, Box&lt;dyn std::error::Error&gt;&gt;` 
-/// with the name of the fastq file as the key and the read count as the value. 
+/// This function will return a HashMap as a Result&lt;HashMap&lt;String, u64&gt;, Box&lt;dyn std::error::Error&gt;&gt;`
+/// with the name of the fastq file as the key and the read count as the value.
 /// If an error occurs while reading any of the files, the error will be returned instead.
 ///
 /// # Examples
@@ -853,17 +1148,19 @@
 /// ```
 /// let files = vec![&quot;sample1.fastq&quot;, &quot;sample2.fastq&quot;, &quot;sample3.fastq&quot;];
 /// let sample_names = vec![&quot;sample1&quot;, &quot;sample2&quot;, &quot;sample3&quot;];
-/// 
+///
 /// let read_counts = get_read_counts(files, sample_names)?;
 /// for (sample_name, count) in read_counts {
 ///     println!(&quot;{} contains {} reads.&quot;, sample_name, count);
 /// }
 /// ```
-</span><span class="kw">pub fn </span>get_read_counts(input_fastqs: Vec&lt;String&gt;, sample_names: <span class="kw-2">&amp;</span>Vec&lt;String&gt;) 
-                -&gt; <span class="prelude-ty">Result</span>&lt;HashMap&lt;String, u64&gt;, Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
+</span><span class="kw">pub fn </span>get_read_counts(
+    input_fastqs: Vec&lt;String&gt;,
+    sample_names: <span class="kw-2">&amp;</span>Vec&lt;String&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;HashMap&lt;String, u64&gt;, Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="kw">let </span>num_of_fastqs = input_fastqs.len() <span class="kw">as </span>u64;
     <span class="kw">let </span>progress_br = ProgressBar::new(num_of_fastqs);
-    
+
     progress_br.set_style(
         ProgressStyle::default_bar()
             .template(<span class="string">&quot;{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)&quot;</span>)
@@ -875,14 +1172,14 @@
     <span class="kw">let </span><span class="kw-2">mut </span>read_counts = HashMap::new();
 
     <span class="kw">for </span>(file, name) <span class="kw">in </span>input_fastqs.iter().zip(sample_names) {
-        <span class="kw">let </span>count: u64 = count_reads(file)<span class="question-mark">?</span>.try_into().unwrap();
+        <span class="kw">let </span>count: u64 = count_reads(file)<span class="question-mark">?</span>;
         read_counts.insert(name.to_string(), count);
 
         progress_br.inc(<span class="number">1</span>);
-    };
+    }
 
     progress_br.finish_with_message(<span class="string">&quot;Finished counting reads.&quot;</span>);
-    
+
     <span class="prelude-val">Ok</span>(read_counts)
 }
 
@@ -897,7 +1194,7 @@
 /// ```
 /// remove_intermediate_files();
 /// ```
-</span><span class="kw">fn </span>remove_intermediate_files() {
+</span><span class="kw">pub fn </span>remove_intermediate_files() {
     <span class="kw">let </span>files_to_delete: HashSet&lt;String&gt; = <span class="macro">vec!</span>[
         <span class="string">&quot;.bam&quot;</span>,
         <span class="string">&quot;.cut.fastq&quot;</span>,
@@ -910,10 +1207,10 @@
         <span class="string">&quot;_subsample&quot;</span>,
         <span class="string">&quot;processed&quot;</span>,
         <span class="string">&quot;_threshold_count_sum.csv&quot;</span>,
-        <span class="string">&quot;_common_RNAs&quot;
-    </span>]
+        <span class="string">&quot;_common_RNAs&quot;</span>,
+    ]
     .into_iter()
-    .flat_map(capture_target_files)
+    .flat_map(capture_files_to_delete)
     .collect();
 
     <span class="kw">for </span>file <span class="kw">in </span>files_to_delete {
@@ -921,10 +1218,9 @@
     }
 }
 
-<span class="kw">fn </span>main() -&gt; io::Result&lt;()&gt; {
-
-    <span class="kw">let </span>matches = App::new(<span class="string">&quot;Small RNA Analysis&quot;</span>)
-        .version(<span class="string">&quot;1.0&quot;</span>)
+<span class="kw">pub fn </span>main() -&gt; io::Result&lt;()&gt; {
+    <span class="kw">let </span>matches = App::new(<span class="string">&quot;sumi&quot;</span>)
+        .version(<span class="string">&quot;0.1.0&quot;</span>)
         .author(<span class="string">&quot;Author: Michael Hawkins&quot;</span>)
         .about(<span class="string">&quot;This script can be used to analyze Small RNA UMI libraries. \
         \n\nIt performs UMI error correction and deduplication using a directional graph algorithm.\
@@ -944,6 +1240,16 @@
                 .value_name(<span class="string">&quot;MINIMUM_LENGTH&quot;</span>)
                 .value_parser(<span class="macro">clap::value_parser!</span>(u8).range(<span class="number">0</span>..<span class="number">75</span>))
                 .default_value(<span class="string">&quot;16&quot;</span>),
+        )
+        .arg(
+            Arg::with_name(<span class="string">&quot;maximum_length&quot;</span>)
+                .short(<span class="string">&#39;x&#39;</span>)
+                .long(<span class="string">&quot;max-length&quot;</span>)
+                .help(<span class="string">&quot;The maxiumum length cutoff for cutadapt. Fragments longer than this length \
+                will be discarded after adapter trimming.&quot;</span>)
+                .value_name(<span class="string">&quot;MAXIMUM_LENGTH&quot;</span>)
+                .value_parser(<span class="macro">clap::value_parser!</span>(u8).range(<span class="number">0</span>..<span class="number">150</span>))
+                .default_value(<span class="string">&quot;30&quot;</span>),
         )
         .arg(
             Arg::with_name(<span class="string">&quot;num_threads&quot;</span>)
@@ -968,7 +1274,8 @@
                 .value_name(<span class="string">&quot;ALIGNMENT_REFERENCE&quot;</span>)
                 .help(<span class="string">&quot;The bowtie2 reference location. Use full path, e.g., /home/path/to/ref. \
                 Name of reference for the target RNA type should be a simple one word name such \
-                as &#39;miRNA&#39; or &#39;pfeRNA&#39;.&quot;</span>)
+                as &#39;miRNA&#39; or &#39;pfeRNA&#39;. Note the accompanying RNA fasta file needs to be in the \
+                same folder as the reference.&quot;</span>)
                 .takes_value(<span class="bool-val">true</span>)
                 .default_value(<span class="string">&quot;./data/miRNA&quot;</span>),
         )
@@ -1017,7 +1324,7 @@
             Arg::with_name(<span class="string">&quot;thresholds&quot;</span>)
                 .short(<span class="string">&#39;T&#39;</span>)
                 .long(<span class="string">&quot;thresholds&quot;</span>)
-                .multiple(<span class="bool-val">true</span>) 
+                .multiple(<span class="bool-val">true</span>)
                 .help(<span class="string">&quot;The thresholds for RNA species counting. Multiple values must be \
                 separated by a space. Default threshold values set to 1 3 5 10.&quot;</span>)
                 .value_name(<span class="string">&quot;THRESHOLDS&quot;</span>),
@@ -1040,6 +1347,26 @@
                 .help(<span class="string">&quot;Use the Levenshtein distance as the edit distance when comparing UMIs.&quot;</span>)
         )
         .arg(
+            Arg::with_name(<span class="string">&quot;isomirs&quot;</span>)
+                .short(<span class="string">&#39;i&#39;</span>)
+                .long(<span class="string">&quot;isomir&quot;</span>)
+                .takes_value(<span class="bool-val">false</span>)
+                .help(<span class="string">&quot;Count the occurrence of isomiRs with base additions or deletions on \
+                either end in each sample. Internal mismatches are not allowed, though \
+                single mutations on either end are. IsomiRs will be written to separate output file.&quot;</span>)
+        )
+        .arg(
+            Arg::with_name(<span class="string">&quot;max_isomir_diff&quot;</span>)
+                .short(<span class="string">&#39;d&#39;</span>)
+                .long(<span class="string">&quot;diff&quot;</span>)
+                .help(<span class="string">&quot;The maximum number of bases to be considered for extension or deletion at the 3&#39; or 5&#39; end. \
+                Note 5&#39; end extensions are limited to a maximum of 2 given limited biological \
+                evidence of their existence.&quot;</span>)
+                .value_name(<span class="string">&quot;ISOMIR_DIFF&quot;</span>)
+                .value_parser(<span class="macro">clap::value_parser!</span>(usize))
+                .default_value(<span class="string">&quot;3&quot;</span>),
+        )
+        .arg(
             Arg::with_name(<span class="string">&quot;umi_regex&quot;</span>)
             .short(<span class="string">&#39;p&#39;</span>)
             .long(<span class="string">&quot;umi_regex&quot;</span>)
@@ -1055,33 +1382,40 @@
             .takes_value(<span class="bool-val">true</span>)
             .default_value(<span class="string">&quot;(^.{12})&quot;</span>),
         )
+        .arg(
+            Arg::with_name(<span class="string">&quot;mismatch&quot;</span>)
+                .short(<span class="string">&#39;e&#39;</span>)
+                .long(<span class="string">&quot;mismatch&quot;</span>)
+                .takes_value(<span class="bool-val">false</span>)
+                .help(<span class="string">&quot;Allow a 1 bp mismatch during sequence alignment. Default is to disallow mismatches.&quot;</span>)
+        )
         .get_matches();
 
     <span class="kw">let </span>config = Config::new(matches);
 
     <span class="comment">// Set the library type
-    </span><span class="kw">let </span>library_type: <span class="kw-2">&amp;</span>str;
-    <span class="kw">if </span>config.qiagen {
-        library_type = <span class="string">&quot;Qiagen&quot;
-    </span>} <span class="kw">else </span>{
-        library_type = <span class="string">&quot;UMI&quot;
-    </span>}
+    </span><span class="kw">let </span>library_type: <span class="kw-2">&amp;</span>str = <span class="kw">if </span>config.qiagen { <span class="string">&quot;Qiagen&quot; </span>} <span class="kw">else </span>{ <span class="string">&quot;UMI&quot; </span>};
 
     <span class="comment">// Gather all the input parameters
     </span><span class="kw">let </span>reference = <span class="kw-2">&amp;</span>config.alignment_reference;
-    <span class="kw">let </span>reference_name = Path::new(reference).file_name().unwrap().to_str().unwrap();
+    <span class="kw">let </span>reference_name = Path::new(reference).file_name().unwrap().to_str().expect(<span class="string">&quot;Reference checked.&quot;</span>);
 
     <span class="kw">let </span>umi_regex_result = Regex::new(<span class="kw-2">&amp;</span>config.umi_regex);
     <span class="kw">let </span>umi_regex = <span class="kw">match </span>umi_regex_result {
         <span class="prelude-val">Ok</span>(regex) =&gt; regex,
-        <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Unexpected umi regex pattern&quot;</span>)
+        <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Unexpected umi regex pattern&quot;</span>),
     };
 
     <span class="comment">// Set minimum length for adapter trimming
-    </span><span class="kw">let </span>minimum_length = calculate_minimum_length(<span class="kw-2">&amp;</span>config.umi_regex, config.minimum_length, config.qiagen);
+    </span><span class="kw">let </span>minimum_length =
+        calculate_minimum_length(<span class="kw-2">&amp;</span>config.umi_regex, config.minimum_length, config.qiagen);
+
+    <span class="comment">// Set maximum length for adapter trimming
+    </span><span class="kw">let </span>maximum_length =
+        calculate_maximum_length(<span class="kw-2">&amp;</span>config.umi_regex, config.maximum_length, config.qiagen);
 
     <span class="comment">// Get fastq files
-    </span><span class="kw">let </span>fastq_files: Vec&lt;String&gt; = capture_target_files(<span class="string">&quot;_R1_001.fastq.gz&quot;</span>);
+    </span><span class="kw">let </span>fastq_files: Vec&lt;String&gt; = capture_target_files(<span class="string">&quot;_R1_001.fastq.gz&quot;</span>, <span class="bool-val">false</span>);
     <span class="kw">if </span>fastq_files.is_empty() {
         <span class="macro">panic!</span>(<span class="string">&quot;No fastq files were found&quot;</span>);
     }
@@ -1091,19 +1425,25 @@
         <span class="kw">match </span>is_gzipped(fastq) {
             <span class="prelude-val">Ok</span>(compressed) =&gt; {
                 <span class="kw">if </span>!compressed {
-                    <span class="macro">panic!</span>(<span class="string">&quot;File {} is not gzipped. Please gzip the input files.&quot;</span>, fastq);
+                    <span class="macro">panic!</span>(
+                        <span class="string">&quot;File {} is not gzipped. Please gzip the input files.&quot;</span>,
+                        fastq
+                    );
                 }
-            },
-            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(<span class="string">&quot;Failed to check if file {} is gzipped due to error: {}&quot;</span>, fastq, e),
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; <span class="macro">panic!</span>(
+                <span class="string">&quot;Failed to check if file {} is gzipped due to error: {}&quot;</span>,
+                fastq, e
+            ),
         };
-    };
+    }
 
     <span class="comment">// Get sample names
     </span><span class="kw">let </span><span class="kw-2">mut </span>sample_names: Vec&lt;String&gt; = Vec::new();
     <span class="kw">for </span>filename <span class="kw">in </span><span class="kw-2">&amp;</span>fastq_files {
         <span class="kw">let </span>path = Path::new(<span class="kw-2">&amp;</span>filename);
         <span class="kw">let </span>extensionless_name = path.file_stem().unwrap().to_str().unwrap();
-        <span class="kw">let </span>first_name = extensionless_name.split(<span class="string">&quot;_&quot;</span>).next().unwrap();
+        <span class="kw">let </span>first_name = extensionless_name.split(<span class="string">&#39;_&#39;</span>).next().unwrap();
         sample_names.push(first_name.to_string());
     }
 
@@ -1119,49 +1459,91 @@
     <span class="comment">// Subsample fastqs if desired
     </span><span class="kw">if </span>config.subsample_to_lowest {
         <span class="comment">// Subsample to the smallest fastq file
-        </span><span class="kw">let _ </span>= subsample_fastqs(fastq_files.clone(), sample_names.clone(), <span class="prelude-val">None</span>, config.rng_seed);
-        <span class="kw">let </span>subsamples_fastq_files = capture_target_files(<span class="string">&quot;_subsample.fastq&quot;</span>);
+        </span><span class="kw">let _ </span>= subsample_fastqs(
+            fastq_files.clone(),
+            sample_names.clone(),
+            <span class="prelude-val">None</span>,
+            config.rng_seed,
+        );
+        <span class="kw">let </span>subsamples_fastq_files = capture_target_files(<span class="string">&quot;_subsample.fastq&quot;</span>, <span class="bool-val">false</span>);
 
         <span class="comment">// Trim adapters from the reads and remove UMIs
-        </span>trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, <span class="kw-2">&amp;</span>umi_regex);
+        </span>trimmed_fastqs = trim_adapters(
+            subsamples_fastq_files,
+            sample_library_type.clone(),
+            minimum_length,
+            maximum_length,
+            <span class="kw-2">&amp;</span>umi_regex,
+        );
     } <span class="kw">else if let </span><span class="prelude-val">Some</span>(n_reads) = config.subsample_fastqs {
         <span class="comment">// Subsample to the specified number of reads
-        </span><span class="kw">let _ </span>= subsample_fastqs(fastq_files.clone(), sample_names.clone(), <span class="prelude-val">Some</span>(n_reads), config.rng_seed);
-        <span class="kw">let </span>subsamples_fastq_files = capture_target_files(<span class="string">&quot;_subsample.fastq&quot;</span>);
+        </span><span class="kw">let _ </span>= subsample_fastqs(
+            fastq_files.clone(),
+            sample_names.clone(),
+            <span class="prelude-val">Some</span>(n_reads),
+            config.rng_seed,
+        );
+        <span class="kw">let </span>subsamples_fastq_files = capture_target_files(<span class="string">&quot;_subsample.fastq&quot;</span>, <span class="bool-val">false</span>);
 
         <span class="comment">// Trim adapters from the reads and remove UMIs
-        </span>trimmed_fastqs = trim_adapters(subsamples_fastq_files, sample_library_type.clone(), minimum_length, <span class="kw-2">&amp;</span>umi_regex);
+        </span>trimmed_fastqs = trim_adapters(
+            subsamples_fastq_files,
+            sample_library_type.clone(),
+            minimum_length,
+            maximum_length,
+            <span class="kw-2">&amp;</span>umi_regex,
+        );
     } <span class="kw">else </span>{
         <span class="comment">// No subsampling
-        </span>trimmed_fastqs = trim_adapters(fastq_files.clone(), sample_library_type.clone(), minimum_length, <span class="kw-2">&amp;</span>umi_regex);
+        </span>trimmed_fastqs = trim_adapters(
+            fastq_files.clone(),
+            sample_library_type.clone(),
+            minimum_length,
+            maximum_length,
+            <span class="kw-2">&amp;</span>umi_regex,
+        );
     }
 
-    <span class="comment">// Calculate number of RNA in each sample 
+    <span class="comment">// Calculate number of RNA in each sample
     // Error correct UMIs in sample bam file
     </span><span class="kw">let </span><span class="prelude-val">Ok</span>(sam_files) = rna_discovery_calculation(trimmed_fastqs
                                                                 , sample_names.clone()
-                                                                , <span class="kw-2">&amp;</span>config) 
+                                                                , <span class="kw-2">&amp;</span>config)
                                                                 <span class="kw">else </span>{<span class="macro">panic!</span>(<span class="string">&quot;An error occurred during the RNA counting calculation&quot;</span>)};
 
-    <span class="kw">let </span>rna_counts_files = capture_target_files(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;_{}_counts&quot;</span>, reference_name));
+    <span class="kw">let </span>rna_counts_files = capture_target_files(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;_{}_counts&quot;</span>, reference_name), <span class="bool-val">false</span>);
 
     <span class="comment">// Create read length distribution
-    </span><span class="kw">let _ </span>= calculate_read_length_distribution(sam_files);
+    </span>calculate_read_length_distribution(sam_files);
 
-    <span class="kw">let _ </span>= threshold_count(rna_counts_files.clone(), config.thresholds, sample_names.clone(), reference);
+    <span class="kw">let _ </span>= threshold_count(
+        rna_counts_files.clone(),
+        config.thresholds,
+        sample_names.clone(),
+        reference,
+    );
 
-    <span class="kw">let </span>threshold_files = capture_target_files(<span class="string">&quot;_threshold_count_sum.csv&quot;</span>);
+    <span class="kw">let </span>threshold_files = capture_target_files(<span class="string">&quot;_threshold_count_sum.csv&quot;</span>, <span class="bool-val">false</span>);
 
-    <span class="kw">let _ </span>= combine_threshold_counts(threshold_files, <span class="string">&quot;RNA_threshold_counts.csv&quot;</span>.to_string(), sample_names.clone());
+    <span class="kw">let _ </span>= combine_threshold_counts(
+        threshold_files,
+        <span class="string">&quot;RNA_threshold_counts.csv&quot;</span>.to_string(),
+        sample_names.clone(),
+    );
 
-    <span class="kw">let </span>(full_rna_names_list, rna_info, rpm_info) = find_common_rnas(rna_counts_files
-                                                                     , sample_names.clone()
-                                                                     );
-    <span class="kw">let _ </span>= write_common_rna_file(full_rna_names_list.clone(), rna_info, rpm_info, sample_names, reference_name);
+    <span class="kw">let </span>(full_rna_names_list, rna_info, rpm_info) =
+        find_common_rnas(rna_counts_files, sample_names.clone());
+    write_common_rna_file(
+        full_rna_names_list.clone(),
+        rna_info,
+        rpm_info,
+        sample_names,
+        reference_name,
+    );
 
     <span class="comment">// Remove intermediate files, such as bam and sam files, unless otherwise specified
     </span><span class="kw">if </span>!config.keep_intermediate_files {
-        <span class="kw">let _ </span>= remove_intermediate_files();
+        remove_intermediate_files();
     }
 
     <span class="prelude-val">Ok</span>(())

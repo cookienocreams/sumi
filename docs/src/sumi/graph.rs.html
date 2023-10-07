@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/graph.rs`."><title>graph.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/graph.rs`."><title>graph.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -359,36 +359,71 @@
 <a href="#359" id="359">359</a>
 <a href="#360" id="360">360</a>
 <a href="#361" id="361">361</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>std::collections::{HashMap, HashSet};
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
+<a href="#393" id="393">393</a>
+<a href="#394" id="394">394</a>
+<a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::hamming;
 <span class="kw">use </span><span class="kw">crate</span>::io;
+<span class="kw">use </span><span class="kw">crate</span>::levenshtein;
 <span class="kw">use </span><span class="kw">crate</span>::Graph;
 <span class="kw">use </span><span class="kw">crate</span>::NodeIndex;
 <span class="kw">use </span><span class="kw">crate</span>::READ_NAME_UMI_REGEX;
-<span class="kw">use </span><span class="kw">crate</span>::Error;
-<span class="kw">use </span><span class="kw">crate</span>::hamming;
-<span class="kw">use </span><span class="kw">crate</span>::levenshtein;
+<span class="kw">use crate</span>::{HashMap, HashSet};
 <span class="kw">use </span>petgraph::visit::Bfs;
 <span class="kw">use </span>petgraph::visit::VisitMap;
 <span class="kw">use </span>petgraph::visit::Visitable;
-<span class="kw">use </span><span class="kw">crate</span>::bam::RecordWriter;
+<span class="kw">use </span>rust_htslib::bam::{Read, Reader, Record, Writer, Header};
+<span class="kw">use </span>rust_htslib::bam::Format::Bam;
 
-<span class="comment">// Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from 
+<span class="comment">// Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from
 // NodeIndex to a tuple of UMI and its count.
-</span><span class="kw">type </span>UmiGraph = (Graph&lt;Vec&lt;u8&gt;, u32&gt;, HashMap&lt;NodeIndex, (Vec&lt;u8&gt;, u32)&gt;);
+</span><span class="kw">pub type </span>UmiGraph = (Graph&lt;Vec&lt;u8&gt;, u32&gt;, HashMap&lt;NodeIndex, (Vec&lt;u8&gt;, u32)&gt;);
 
 <span class="doccomment">/// Construct a substring index from a slice of UMIs.
 ///
-/// This function creates an index that maps each unique substring of a UMI to a set of UMIs 
+/// This function creates an index that maps each unique substring of a UMI to a set of UMIs
 /// that contain that substring. The size of the substring is determined by `slice_size`.
 ///
-/// The index is used to quickly find potential neighbor UMIs that may be within a certain 
+/// The index is used to quickly find potential neighbor UMIs that may be within a certain
 /// edit distance, without having to compute the distance between all pairs of UMIs.
 ///
 /// # Arguments
 ///
 /// * `umis` - A slice of UMIs, where each UMI is a byte array.
 /// * `slice_size` - The size of the substring to use for the index. Each UMI is divided into
-///   chunks of this size (from left to right, and without overlap between chunks), and each 
+///   chunks of this size (from left to right, and without overlap between chunks), and each
 ///   chunk is added to the index.
 ///
 /// # Returns
@@ -404,14 +439,20 @@
 /// let index = build_substring_index(&amp;umis, slice_size);
 /// ```
 ///
-/// In the above example, the index would map &quot;AC&quot; to {0}, &quot;CG&quot; to {0}, &quot;GT&quot; to {0, 2}, &quot;TG&quot; to {1, 3}, 
+/// In the above example, the index would map &quot;AC&quot; to {0}, &quot;CG&quot; to {0}, &quot;GT&quot; to {0, 2}, &quot;TG&quot; to {1, 3},
 /// &quot;CA&quot; to {1, 3}, &quot;GA&quot; to {2}, and &quot;AT&quot; to {3}.
-</span><span class="kw">pub fn </span>build_substring_index(umis: <span class="kw-2">&amp;</span>[Vec&lt;u8&gt;], slice_size: usize) -&gt; HashMap&lt;Vec&lt;u8&gt;, HashSet&lt;usize&gt;&gt; {
+</span><span class="kw">pub fn </span>build_substring_index(
+    umis: <span class="kw-2">&amp;</span>[Vec&lt;u8&gt;],
+    slice_size: usize,
+) -&gt; HashMap&lt;Vec&lt;u8&gt;, HashSet&lt;usize&gt;&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>index: HashMap&lt;Vec&lt;u8&gt;, HashSet&lt;usize&gt;&gt; = HashMap::new();
 
     <span class="kw">for </span>(i, umi) <span class="kw">in </span>umis.iter().enumerate() {
         <span class="kw">for </span>slice <span class="kw">in </span>umi.chunks(slice_size) {
-            index.entry(slice.to_vec()).or_insert_with(HashSet::new).insert(i);
+            index
+                .entry(slice.to_vec())
+                .or_insert_with(HashSet::new)
+                .insert(i);
         }
     }
 
@@ -421,32 +462,32 @@
 <span class="doccomment">/// Create a graph from a dictionary of UMIs and their counts.
 ///
 /// This function constructs a graph where each node represents a unique UMI and each edge represents
-/// a edit distance less than or equal to `max_edits` between two UMIs. The edge creation is based 
-/// on the condition that the count of one UMI should be at least five times the count of the other 
-/// UMI minus 1. If the condition is met, an edge is added between the two UMIs. 
+/// a edit distance less than or equal to `max_edits` between two UMIs. The edge creation is based
+/// on the condition that the count of one UMI should be at least five times the count of the other
+/// UMI minus 1. If the condition is met, an edge is added between the two UMIs.
 ///
-/// The function implements a slightly modified directional graph algorithm that allows for a edit 
-/// Distance of 1 between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq 
-/// and small RNA-seq using unique molecular identifiers. &lt;https://doi.org/10.1186/s12864-018-4933-1&gt;. 
-/// The original algorithm uses a two fold count threshold. This version of the algorithm uses a 
-/// substring indexing strategy to efficiently find potential neighbors for each UMI before computing 
+/// The function implements a slightly modified directional graph algorithm that allows for a edit
+/// Distance of 1 between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-seq
+/// and small RNA-seq using unique molecular identifiers. &lt;https://doi.org/10.1186/s12864-018-4933-1&gt;.
+/// The original algorithm uses a two fold count threshold. This version of the algorithm uses a
+/// substring indexing strategy to efficiently find potential neighbors for each UMI before computing
 /// the edit distance, hence improving the performance for large datasets.
 ///
-/// Note that Levenshtein distance could be used here, but it generally takes longer to run and 
+/// Note that Levenshtein distance could be used here, but it generally takes longer to run and
 /// has a negligible effect on UMI deduplication.
 ///
 /// # Arguments
 ///
 /// * `umi_count_dict` - A hashmap where the key is the UMI (as a byte array) and the value is its count.
-/// * `max_edits` - The maximum edit distance allowed to consider two UMIs as neighbors 
+/// * `max_edits` - The maximum edit distance allowed to consider two UMIs as neighbors
 /// (i.e., to add an edge between them).
 /// * `use_levenshtein` - Whether to use the Levenshtein distance or the default Hamming distance
 /// as the edit distance metric.
 ///
 /// # Returns
 ///
-/// A tuple consisting of the UMI graph and a hashmap containing the node attributes. The graph is of 
-/// type `Graph&lt;Vec&lt;u8&gt;, u32&gt;`, and the hashmap key is a `NodeIndex` which points to a tuple of UMI 
+/// A tuple consisting of the UMI graph and a hashmap containing the node attributes. The graph is of
+/// type `Graph&lt;Vec&lt;u8&gt;, u32&gt;`, and the hashmap key is a `NodeIndex` which points to a tuple of UMI
 /// and its count.
 ///
 /// # Example
@@ -457,7 +498,11 @@
 /// let max_edits: u32 = 1;
 /// let (graph, node_attributes) = umi_graph(&amp;umi_count_dict, max_edits);
 /// ```
-</span><span class="kw">pub fn </span>umi_graph(umi_count_dict: <span class="kw-2">&amp;</span>HashMap&lt;Vec&lt;u8&gt;, u32&gt;, max_edits: u32, use_levenshtein: bool) -&gt; UmiGraph {
+</span><span class="kw">pub fn </span>umi_graph(
+    umi_count_dict: <span class="kw-2">&amp;</span>HashMap&lt;Vec&lt;u8&gt;, u32&gt;,
+    max_edits: u32,
+    use_levenshtein: bool,
+) -&gt; UmiGraph {
     <span class="kw">let </span><span class="kw-2">mut </span>graph: Graph&lt;Vec&lt;u8&gt;, u32&gt; = Graph::&lt;Vec&lt;u8&gt;, u32&gt;::new();
     <span class="kw">let </span><span class="kw-2">mut </span>node_attributes: HashMap&lt;NodeIndex, (Vec&lt;u8&gt;, u32)&gt; = HashMap::new();
 
@@ -466,8 +511,8 @@
 
     <span class="comment">// Create nodes in the graph for each UMI
     </span><span class="kw">for </span>umi <span class="kw">in </span><span class="kw-2">&amp;</span>umis {
-        <span class="kw">let </span>count = <span class="kw-2">*</span>umi_count_dict.get(umi).unwrap(); <span class="comment">// get count for the current UMI
-        </span><span class="kw">let </span>node = graph.add_node(umi.clone()); <span class="comment">// add node to the graph
+        <span class="kw">let </span>count = <span class="kw-2">*</span>umi_count_dict.get(umi).unwrap(); <span class="comment">// Get count for the current UMI
+        </span><span class="kw">let </span>node = graph.add_node(umi.clone()); <span class="comment">// Add node to the graph
         </span>node_attributes.insert(node, (umi.clone(), count));
     }
 
@@ -483,12 +528,11 @@
 
     <span class="comment">// Iterate over each UMI to find potential neighbors and add edges
     </span><span class="kw">for </span>i <span class="kw">in </span><span class="number">0</span>..umis.len() {
-        
         <span class="comment">// Split current UMI into slices
         </span><span class="kw">let </span>umi_slices: Vec&lt;Vec&lt;u8&gt;&gt; = umis[i]
-                                        .chunks(slice_size)
-                                        .map(|chunk| chunk.to_vec())
-                                        .collect(); 
+            .chunks(slice_size)
+            .map(|chunk| chunk.to_vec())
+            .collect();
         <span class="kw">let </span><span class="kw-2">mut </span>potential_neighbors = HashSet::new();
 
         <span class="comment">// Add UMIs having common substrings with the current UMI to the potential neighbors set
@@ -502,9 +546,9 @@
         </span><span class="kw">for </span>j <span class="kw">in </span>potential_neighbors {
             <span class="comment">// Ensure that we don&#39;t compute the distance between a UMI and itself
             </span><span class="kw">if </span>i != j {
-                <span class="kw">let </span>edit_distance =
+                <span class="kw">let </span>edit_distance = 
                 <span class="kw">if </span>use_levenshtein {
-                    levenshtein(<span class="kw-2">&amp;</span>umis[i], <span class="kw-2">&amp;</span>umis[j]) <span class="kw">as </span>u32
+                    levenshtein(<span class="kw-2">&amp;</span>umis[i], <span class="kw-2">&amp;</span>umis[j])
                 } <span class="kw">else </span>{
                     hamming(<span class="kw-2">&amp;</span>umis[i], <span class="kw-2">&amp;</span>umis[j]) <span class="kw">as </span>u32
                 };
@@ -537,9 +581,9 @@
 /// This function examines each connected component in the given UMI graph and identifies
 /// the representative UMI for each component. A representative UMI is defined as the UMI
 /// within its connected component that has the highest count.
-/// 
-/// This function uses a breadth-first search (BFS) to traverse each connected component, keeping 
-/// track of the UMI with the highest count in the current component. The UMI with the highest 
+///
+/// This function uses a breadth-first search (BFS) to traverse each connected component, keeping
+/// track of the UMI with the highest count in the current component. The UMI with the highest
 /// count is then added to the representative UMIs HashSet.
 ///
 /// # Arguments
@@ -548,13 +592,13 @@
 /// represents a unique UMI, and each edge represents a edit distance less than a specified
 /// threshold between two UMIs.
 ///
-/// * `node_attributes` - A reference to a HashMap mapping node indices to a tuple of UMIs and 
+/// * `node_attributes` - A reference to a HashMap mapping node indices to a tuple of UMIs and
 /// their counts. The key is a `NodeIndex`, and the value is a tuple where the first element
 /// is a UMI (as a byte array), and the second element is its count.
 ///
 /// # Returns
 ///
-/// * A HashSet containing the representative UMIs for each connected component in the graph. 
+/// * A HashSet containing the representative UMIs for each connected component in the graph.
 /// Each UMI is represented as a byte array (`Vec&lt;u8&gt;`).
 ///
 /// # Example
@@ -563,9 +607,10 @@
 /// // assume `graph` and `node_attributes` are predefined
 /// let representative_umis = get_representative_umis_bfs(&amp;graph, &amp;node_attributes);
 /// ```
-</span><span class="kw">pub fn </span>get_representative_umis_bfs(graph: <span class="kw-2">&amp;</span>Graph&lt;Vec&lt;u8&gt;, u32&gt;
-                                , node_attributes: <span class="kw-2">&amp;</span>HashMap&lt;NodeIndex
-                                , (Vec&lt;u8&gt;, u32)&gt;) -&gt; HashSet&lt;Vec&lt;u8&gt;&gt; {
+</span><span class="kw">pub fn </span>get_representative_umis_bfs(
+    graph: <span class="kw-2">&amp;</span>Graph&lt;Vec&lt;u8&gt;, u32&gt;,
+    node_attributes: <span class="kw-2">&amp;</span>HashMap&lt;NodeIndex, (Vec&lt;u8&gt;, u32)&gt;,
+) -&gt; HashSet&lt;Vec&lt;u8&gt;&gt; {
     <span class="comment">// Initialize an empty HashSet to store the representative UMIs.
     </span><span class="kw">let </span><span class="kw-2">mut </span>repr_umis: HashSet&lt;Vec&lt;u8&gt;&gt; = HashSet::new();
 
@@ -578,7 +623,7 @@
         </span><span class="kw">if </span>!visited.is_visited(<span class="kw-2">&amp;</span>start_node) {
             <span class="kw">let </span><span class="kw-2">mut </span>bfs = Bfs::new(graph, start_node);
             <span class="comment">// Initialize variables to keep track of the UMI with the maximum count in the current component.
-            </span><span class="kw">let </span><span class="kw-2">mut </span>max_count:u32 = <span class="number">0</span>;
+            </span><span class="kw">let </span><span class="kw-2">mut </span>max_count: u32 = <span class="number">0</span>;
             <span class="kw">let </span><span class="kw-2">mut </span>max_umi: Vec&lt;u8&gt; = Vec::new();
 
             <span class="kw">while let </span><span class="prelude-val">Some</span>(node) = bfs.next(graph) {
@@ -611,8 +656,8 @@
 ///
 /// # Arguments
 ///
-/// * `input_bam_file` - Path to an input BAM file. The BAM file should contain only mapped 
-///   RNA sequences and each read&#39;s UMI in the read name, appended using an underscore, e.g. 
+/// * `input_bam_file` - Path to an input BAM file. The BAM file should contain only mapped
+///   RNA sequences and each read&#39;s UMI in the read name, appended using an underscore, e.g.
 ///   &quot;..._CGATGATCGATG&quot;.
 ///
 /// # Returns
@@ -624,13 +669,17 @@
 /// ```rust
 /// let corrected_umis = find_true_umis(&quot;sample1.UMI.bam&quot;);
 /// ```
-</span><span class="kw">pub fn </span>find_true_umis(input_bam_file: <span class="kw-2">&amp;</span>str, use_levenshtein: bool) -&gt; <span class="prelude-ty">Result</span>&lt;HashSet&lt;Vec&lt;u8&gt;&gt;, io::Error&gt; {
+</span><span class="kw">pub fn </span>find_true_umis(
+    input_bam_file: <span class="kw-2">&amp;</span>str,
+    use_levenshtein: bool,
+) -&gt; <span class="prelude-ty">Result</span>&lt;HashSet&lt;Vec&lt;u8&gt;&gt;, io::Error&gt; {
     <span class="kw">let </span><span class="kw-2">mut </span>umi_counts: HashMap&lt;Vec&lt;u8&gt;, u32&gt; = HashMap::new();
-    <span class="kw">let </span>bam_reader = bam::BamReader::from_path(input_bam_file, <span class="number">11</span>).unwrap();
 
-    <span class="kw">for </span>result <span class="kw">in </span>bam_reader {
-        <span class="kw">let </span>record = result.unwrap();
-        <span class="kw">let </span>qname = record.name();
+    <span class="kw">let </span><span class="kw-2">mut </span>bam = Reader::from_path(input_bam_file).unwrap();
+    <span class="kw">let </span><span class="kw-2">mut </span>record = Record::new();
+    <span class="kw">while let </span><span class="prelude-val">Some</span>(reader) = bam.read(<span class="kw-2">&amp;mut </span>record) {
+        reader.expect(<span class="string">&quot;Failed to parse record&quot;</span>);
+        <span class="kw">let </span>qname = record.qname();
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(captures) = READ_NAME_UMI_REGEX.captures(std::str::from_utf8(qname).unwrap()) {
             <span class="kw">let </span>umi = captures.get(<span class="number">1</span>).unwrap().as_str().as_bytes().to_vec();
@@ -638,7 +687,25 @@
         }
     }
 
-    <span class="kw">if </span>umi_counts.len() == <span class="number">0 </span>{
+    <span class="kw">if </span>umi_counts.is_empty() {
+        <span class="kw">return </span><span class="prelude-val">Err</span>(io::Error::new(io::ErrorKind::InvalidInput, <span class="string">&quot;No UMIs found&quot;</span>));
+    }
+
+    <span class="kw">let </span>(graph, node_attributes) = umi_graph(<span class="kw-2">&amp;</span>umi_counts, <span class="number">1</span>, use_levenshtein);
+
+    <span class="comment">// Find the representative UMIs
+    </span><span class="kw">let </span>corrected_umis = get_representative_umis_bfs(<span class="kw-2">&amp;</span>graph, <span class="kw-2">&amp;</span>node_attributes);
+
+    <span class="prelude-val">Ok</span>(corrected_umis)
+}
+
+<span class="doccomment">/// Find the representative UMIs from miRNA or isomiR HashMap instead of SAM file
+</span><span class="kw">pub fn </span>find_true_isomir_umis(
+    umi_counts: HashMap&lt;Vec&lt;u8&gt;, u32&gt;,
+    use_levenshtein: bool,
+) -&gt; <span class="prelude-ty">Result</span>&lt;HashSet&lt;Vec&lt;u8&gt;&gt;, io::Error&gt; {
+    
+    <span class="kw">if </span>umi_counts.is_empty() {
         <span class="kw">return </span><span class="prelude-val">Err</span>(io::Error::new(io::ErrorKind::InvalidInput, <span class="string">&quot;No UMIs found&quot;</span>));
     }
 
@@ -668,7 +735,7 @@
 ///
 /// # Output
 ///
-/// This function doesn&#39;t return any value. Instead, it writes to an output BAM file named 
+/// This function doesn&#39;t return any value. Instead, it writes to an output BAM file named
 /// `{sample_name}.dedup.bam`, where `{sample_name}` is the provided sample name.
 ///
 /// # Example
@@ -682,41 +749,44 @@
 ///     Err(e) =&gt; eprintln!(&quot;An error occurred: {}&quot;, e),
 /// }
 /// ```
-</span><span class="kw">pub fn </span>deduplicate_bam(input_bam_file: <span class="kw-2">&amp;</span>str, sample_name: <span class="kw-2">&amp;</span>String, true_umis: HashSet&lt;Vec&lt;u8&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>Error&gt;&gt; {
+</span><span class="kw">pub fn </span>deduplicate_bam(
+    input_bam_file: <span class="kw-2">&amp;</span>str,
+    sample_name: <span class="kw-2">&amp;</span>String,
+    true_umis: HashSet&lt;Vec&lt;u8&gt;&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="comment">// Open the input BAM file with 4 threads for reading
-    </span><span class="kw">let </span>bam_reader = bam::BamReader::from_path(input_bam_file, <span class="number">4</span>)<span class="question-mark">?</span>;
+    </span><span class="kw">let </span><span class="kw-2">mut </span>bam_reader = Reader::from_path(input_bam_file)<span class="question-mark">?</span>;
 
     <span class="comment">// Capture the header of the input BAM file for use in the output BAM file
-    </span><span class="kw">let </span>header = bam_reader.header().clone();
+    </span><span class="kw">let </span>header = Header::from_template(bam_reader.header());
 
     <span class="comment">// Create an output BAM file with the same header as the input BAM file
     </span><span class="kw">let </span>output_file_path = <span class="macro">format!</span>(<span class="string">&quot;{}.dedup.bam&quot;</span>, sample_name);
-    <span class="kw">let </span><span class="kw-2">mut </span>bam_writer = bam::BamWriter::from_path(output_file_path, header)<span class="question-mark">?</span>;
+    <span class="kw">let </span><span class="kw-2">mut </span>bam_writer = Writer::from_path(output_file_path, <span class="kw-2">&amp;</span>header, Bam)<span class="question-mark">?</span>;
 
     <span class="comment">// Initialize a HashMap to store observed combinations of UMIs and their mapping positions
-    </span><span class="kw">let </span><span class="kw-2">mut </span>umis_and_positions_added: HashMap&lt;(Vec&lt;u8&gt;, i32), bool&gt; = HashMap::new();
+    </span><span class="kw">let </span><span class="kw-2">mut </span>umis_and_positions_added: HashMap&lt;(Vec&lt;u8&gt;, i64), bool&gt; = HashMap::new();
 
     <span class="comment">// Go through each read in the BAM file
-    </span><span class="kw">for </span>result <span class="kw">in </span>bam_reader {
+    </span><span class="kw">for </span>result <span class="kw">in </span>bam_reader.rc_records() {
         <span class="kw">let </span>record = result<span class="question-mark">?</span>;
 
         <span class="comment">// Extract the UMI from the read&#39;s name by splitting the name by underscores and taking the last element
-        </span><span class="kw">let </span>qname = std::str::from_utf8(record.name())<span class="question-mark">?</span>;
-        <span class="kw">let </span>umi: Vec&lt;u8&gt; = qname.split(<span class="string">&quot;_&quot;</span>).last().unwrap().bytes().collect();
+        </span><span class="kw">let </span>qname = std::str::from_utf8(record.qname())<span class="question-mark">?</span>;
+        <span class="kw">let </span>umi: Vec&lt;u8&gt; = qname.split(<span class="string">&#39;_&#39;</span>).last().unwrap().bytes().collect();
 
         <span class="comment">// If the UMI exists and the combination of the UMI and the read&#39;s mapping position hasn&#39;t been observed before,
         // write the read to the output file and record the UMI-mapping position combination
-        </span><span class="kw">if </span>true_umis.contains(<span class="kw-2">&amp;</span>umi) &amp;&amp; !umis_and_positions_added.contains_key(<span class="kw-2">&amp;</span>(umi.clone(), record.ref_id())) {
+        </span><span class="kw">if </span>true_umis.contains(<span class="kw-2">&amp;</span>umi)
+            &amp;&amp; !umis_and_positions_added.contains_key(<span class="kw-2">&amp;</span>(umi.clone(), record.pos()))
+        {
             <span class="comment">// Write the read to the output BAM file
             </span>bam_writer.write(<span class="kw-2">&amp;</span>record)<span class="question-mark">?</span>;
 
             <span class="comment">// Record the observed combination of UMI and mapping position
-            </span>umis_and_positions_added.insert((umi, record.ref_id()), <span class="bool-val">true</span>);
+            </span>umis_and_positions_added.insert((umi, record.pos()), <span class="bool-val">true</span>);
         }
     }
-
-    <span class="comment">// Close the output BAM file
-    </span>bam_writer.finish()<span class="question-mark">?</span>;
 
     <span class="prelude-val">Ok</span>(())
 }

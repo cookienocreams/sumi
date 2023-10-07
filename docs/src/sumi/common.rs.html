@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/common.rs`."><title>common.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/common.rs`."><title>common.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -155,9 +155,12 @@
 <a href="#155" id="155">155</a>
 <a href="#156" id="156">156</a>
 <a href="#157" id="157">157</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::HashMap;
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::BufReader;
 <span class="kw">use </span><span class="kw">crate</span>::File;
-<span class="kw">use </span><span class="kw">crate</span>::BufReader;
+<span class="kw">use </span><span class="kw">crate</span>::HashMap;
 <span class="kw">use </span>std::io::BufRead;
 <span class="kw">use </span>std::io::Write;
 
@@ -166,7 +169,7 @@
 /// # Arguments
 ///
 /// * `rna_counts_files` - A vector of files containing sample RNA counts.
-/// * `read_count_dict` - A dictionary where keys are sample names and values are the total number of reads 
+/// * `read_count_dict` - A dictionary where keys are sample names and values are the total number of reads
 /// for the corresponding sample.
 /// * `sample_names` - A vector of sample names.
 ///
@@ -187,16 +190,21 @@
 /// );
 /// ```
 </span><span class="kw">pub fn </span>find_common_rnas(
-                        rna_counts_files: Vec&lt;String&gt;,
-                        sample_names: Vec&lt;String&gt;,
-                        ) -&gt; (Vec&lt;std::string::String&gt;
-                            , Vec&lt;HashMap&lt;std::string::String, i32&gt;&gt;
-                            , Vec&lt;HashMap&lt;std::string::String, f64&gt;&gt;) {    
+    rna_counts_files: Vec&lt;String&gt;,
+    sample_names: Vec&lt;String&gt;,
+) -&gt; (
+    Vec&lt;std::string::String&gt;,
+    Vec&lt;HashMap&lt;std::string::String, i32&gt;&gt;,
+    Vec&lt;HashMap&lt;std::string::String, f64&gt;&gt;,
+) {
     <span class="kw">let </span><span class="kw-2">mut </span>rna_info = <span class="macro">vec!</span>[];
     <span class="kw">let </span><span class="kw-2">mut </span>rpm_info = <span class="macro">vec!</span>[];
     <span class="kw">let </span><span class="kw-2">mut </span>rna_names_dict: HashMap&lt;String, usize&gt; = HashMap::new(); <span class="comment">// Changed i32 to usize
 
-    </span><span class="kw">for </span>(file, <span class="kw">_</span>) <span class="kw">in </span>rna_counts_files.into_iter().zip(sample_names.clone().into_iter()) {
+    </span><span class="kw">for </span>(file, <span class="kw">_</span>) <span class="kw">in </span>rna_counts_files
+        .into_iter()
+        .zip(sample_names.clone().into_iter())
+    {
         <span class="kw">let </span>file = File::open(file).unwrap(); <span class="comment">// Use File::open instead of Reader::from_path
         </span><span class="kw">let </span>reader = BufReader::new(file); <span class="comment">// Use BufReader to read the file
         </span><span class="kw">let </span><span class="kw-2">mut </span>sample_rna_counts_dictionary = HashMap::new();
@@ -211,11 +219,11 @@
             </span><span class="kw">let </span>rna_name = fields[<span class="number">0</span>].to_string();
             <span class="kw">let </span>rna_count: usize = fields[<span class="number">1</span>].parse().unwrap(); <span class="comment">// Parse count as usize
             </span><span class="kw">let </span>rpm: f64 = fields[<span class="number">2</span>].parse().unwrap();
-            
+
             <span class="comment">// Store RNA count and RPM in the dictionaries for the current sample
             </span>sample_rna_counts_dictionary.insert(rna_name.clone(), rna_count <span class="kw">as </span>i32); <span class="comment">// Convert rna_count to i32
             </span>sample_rna_rpm_dictionary.insert(rna_name.clone(), rpm);
-            
+
             <span class="comment">// Increment the count for the current RNA name in the global dictionary
             </span><span class="kw-2">*</span>rna_names_dict.entry(rna_name).or_insert(<span class="number">0</span>) += <span class="number">1</span>;
         }
@@ -226,20 +234,18 @@
     }
 
     <span class="comment">// Find RNA present in all samples, i.e., have counts equal to the number of samples analyzed
-    </span><span class="kw">let </span>common_rnas: Vec&lt;String&gt; = rna_names_dict.into_iter()
+    </span><span class="kw">let </span>common_rnas: Vec&lt;String&gt; = rna_names_dict
+        .into_iter()
         .filter(|(<span class="kw">_</span>, count)| <span class="kw-2">*</span>count == sample_names.len())
         .map(|(name, <span class="kw">_</span>)| name)
         .collect();
 
     <span class="comment">// Return the common rnas, and the info about counts and RPM
-    </span>(common_rnas,
-        rna_info,
-        rpm_info,
-    )
+    </span>(common_rnas, rna_info, rpm_info)
 }
 
 <span class="doccomment">/// Function to write RNAs common to all samples to two output files: one for counts and one for RPM values.
-/// Each row in the output files represents a RNA and each subsequent column represents the counts 
+/// Each row in the output files represents a RNA and each subsequent column represents the counts
 /// (or RPM values) for that RNA in one sample.
 ///
 /// # Arguments
@@ -277,38 +283,39 @@
 /// );
 /// ```
 </span><span class="kw">pub fn </span>write_common_rna_file(
-                            rna_names: Vec&lt;String&gt;,
-                            rna_info: Vec&lt;HashMap&lt;String, i32&gt;&gt;,
-                            rpm_info: Vec&lt;HashMap&lt;String, f64&gt;&gt;,
-                            sample_names: Vec&lt;String&gt;,
-                            reference_name: <span class="kw-2">&amp;</span>str,
-                        ) {
+    rna_names: Vec&lt;String&gt;,
+    rna_info: Vec&lt;HashMap&lt;String, i32&gt;&gt;,
+    rpm_info: Vec&lt;HashMap&lt;String, f64&gt;&gt;,
+    sample_names: Vec&lt;String&gt;,
+    reference_name: <span class="kw-2">&amp;</span>str,
+) {
     <span class="kw">let </span>file_path = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Common_{}s.tsv&quot;</span>, reference_name);
     <span class="kw">let </span>file_path_rpm = <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;Common_{}s_RPM.tsv&quot;</span>, reference_name);
-        
+
     <span class="comment">// Open the output files
     </span><span class="kw">let </span><span class="kw-2">mut </span>common_rna_file = File::create(file_path).unwrap();
     <span class="kw">let </span><span class="kw-2">mut </span>common_rna_file_rpm = File::create(file_path_rpm).unwrap();
 
     <span class="comment">// Write the headers to the output files
     </span><span class="kw">let </span>header: String = sample_names.join(<span class="string">&quot;\t&quot;</span>);
-    <span class="macro">writeln!</span>(common_rna_file, <span class="string">&quot;{}\t{}&quot;</span>,reference_name, header).unwrap();
+    <span class="macro">writeln!</span>(common_rna_file, <span class="string">&quot;{}\t{}&quot;</span>, reference_name, header).unwrap();
     <span class="macro">writeln!</span>(common_rna_file_rpm, <span class="string">&quot;{}\t{}&quot;</span>, reference_name, header).unwrap();
-        
+
     <span class="comment">// For each RNA, write its counts and RPM values in all samples to the output files
     </span><span class="kw">for </span>rna <span class="kw">in </span><span class="kw-2">&amp;</span>rna_names {
         <span class="comment">// Start the output lines with the RNA name
         </span><span class="kw">let </span><span class="kw-2">mut </span>counts_line = <span class="macro">format!</span>(<span class="string">&quot;{}\t&quot;</span>, rna);
         <span class="kw">let </span><span class="kw-2">mut </span>rpms_line = <span class="macro">format!</span>(<span class="string">&quot;{}\t&quot;</span>, rna);
-            
+
         <span class="comment">// Add the count or RPM value for the current RNA in each sample to the output lines
         </span><span class="kw">for </span>(index, _sample) <span class="kw">in </span>sample_names.iter().enumerate() {
             counts_line.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}\t&quot;</span>, rna_info[index][rna]));
             rpms_line.push_str(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}\t&quot;</span>, rpm_info[index][rna]));
         }
-            
+
         <span class="comment">// Write the output lines to the output files, removing the trailing tab character if present
         </span><span class="macro">writeln!</span>(common_rna_file, <span class="string">&quot;{}&quot;</span>, counts_line.trim_end_matches(<span class="string">&#39;\t&#39;</span>)).unwrap();
         <span class="macro">writeln!</span>(common_rna_file_rpm, <span class="string">&quot;{}&quot;</span>, rpms_line.trim_end_matches(<span class="string">&#39;\t&#39;</span>)).unwrap();
     }
-}</code></pre></div></section></main></body></html>
+}
+</code></pre></div></section></main></body></html>

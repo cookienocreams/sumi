@@ -1,3 +1,3 @@
 (function() {var implementors = {
-"sumi":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.71.1/core/error/trait.Error.html\" title=\"trait core::error::Error\">Error</a> for <a class=\"enum\" href=\"sumi/rna_counts/enum.MyError.html\" title=\"enum sumi::rna_counts::MyError\">MyError</a>"]]
+"sumi":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.72.1/core/error/trait.Error.html\" title=\"trait core::error::Error\">Error</a> for <a class=\"enum\" href=\"sumi/rna_counts/enum.MyError.html\" title=\"enum sumi::rna_counts::MyError\">MyError</a>"]]
 };if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

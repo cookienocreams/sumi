@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/extract_umis.rs`."><title>extract_umis.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/extract_umis.rs`."><title>extract_umis.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -198,18 +198,25 @@
 <a href="#198" id="198">198</a>
 <a href="#199" id="199">199</a>
 <a href="#200" id="200">200</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span>bio::io::fastq::{Reader, Writer, Record};
-<span class="kw">use </span>std::io::BufReader;
+<a href="#201" id="201">201</a>
+<a href="#202" id="202">202</a>
+<a href="#203" id="203">203</a>
+<a href="#204" id="204">204</a>
+<a href="#205" id="205">205</a>
+<a href="#206" id="206">206</a>
+<a href="#207" id="207">207</a>
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::is_gzipped;
+<span class="kw">use </span><span class="kw">crate</span>::Read;
+<span class="kw">use </span><span class="kw">crate</span>::Regex;
+<span class="kw">use </span><span class="kw">crate</span>::DUAL_INDEX_REGEX;
+<span class="kw">use </span><span class="kw">crate</span>::SINGLE_INDEX_REGEX;
+<span class="kw">use </span><span class="kw">crate</span>::UMI_REGEX_QIAGEN;
+<span class="kw">use </span>bio::io::fastq::{Reader, Record, Writer};
 <span class="kw">use </span>flate2::bufread::MultiGzDecoder;
 <span class="kw">use </span>std::fs::File;
-<span class="kw">use </span><span class="kw">crate</span>::Read;
-<span class="kw">use </span><span class="kw">crate</span>::SINGLE_INDEX_REGEX;
-<span class="kw">use </span><span class="kw">crate</span>::DUAL_INDEX_REGEX;
-<span class="kw">use </span><span class="kw">crate</span>::UMI_REGEX_QIAGEN;
-<span class="kw">use </span><span class="kw">crate</span>::is_gzipped;
-<span class="kw">use </span><span class="kw">crate</span>::Regex;
+<span class="kw">use </span>std::io::BufReader;
 
-<span class="doccomment">/// Extracts Unique Molecular Identifiers (UMIs) from a given fastq file and writes the 
+<span class="doccomment">/// Extracts Unique Molecular Identifiers (UMIs) from a given fastq file and writes the
 /// UMI-trimmed sequences to a new fastq file. This function is flexible in the definition of
 /// the UMI, as the user can provide a regular expression with multiple capture groups to specify
 /// the location and format of the UMI within the sequence.
@@ -229,8 +236,11 @@
 /// extract_umis(&quot;sample1&quot;, &quot;_&quot;, &amp;umi_regex);
 /// // This will create an output file named &quot;sample1.cut.fastq&quot; with UMI-trimmed sequences.
 /// ```
-</span><span class="kw">pub fn </span>extract_umis(sample_name: <span class="kw-2">&amp;</span>str, umi_delineator: <span class="kw-2">&amp;</span>str, umi_regex: <span class="kw-2">&amp;</span>Regex) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
-
+</span><span class="kw">pub fn </span>extract_umis(
+    sample_name: <span class="kw-2">&amp;</span>str,
+    umi_delineator: <span class="kw-2">&amp;</span>str,
+    umi_regex: <span class="kw-2">&amp;</span>Regex,
+) -&gt; <span class="prelude-ty">Result</span>&lt;(), Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="kw">let </span>filename = <span class="macro">format!</span>(<span class="string">&quot;{}.{}.{}&quot;</span>, sample_name, <span class="string">&quot;unprocessed.cut&quot;</span>, <span class="string">&quot;fastq&quot;</span>);
 
     <span class="comment">// Attempt to open the input file
@@ -243,10 +253,9 @@
 
         <span class="comment">// Convert the sequence to a string
         </span><span class="kw">let </span>read_sequence = std::str::from_utf8(record.seq())<span class="question-mark">?</span>;
-        
+
         <span class="comment">// Check if the sequence matches the UMI regex
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(captures) = umi_regex.captures(read_sequence) {
-            
             <span class="kw">let </span>umi_str: String;
             <span class="kw">let </span>umi_start: usize;
             <span class="kw">let </span>umi_len: usize;
@@ -279,12 +288,13 @@
                 <span class="prelude-val">Some</span>(matched) =&gt; matched.as_str(),
                 <span class="prelude-val">None </span>=&gt; <span class="kw">match </span>SINGLE_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
                     <span class="prelude-val">Some</span>(matched) =&gt; matched.as_str(),
-                    <span class="prelude-val">None </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Could not find index&quot;</span>),  
+                    <span class="prelude-val">None </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Could not find index&quot;</span>),
                 },
             };
 
             <span class="comment">// Create a new description with the UMI appended
-            </span><span class="kw">let </span>read_info_with_umi = <span class="macro">format!</span>(<span class="string">&quot;{}{}{} {}&quot;</span>, record.id(), umi_delineator, umi_str, indexes);
+            </span><span class="kw">let </span>read_info_with_umi =
+                <span class="macro">format!</span>(<span class="string">&quot;{}{}{} {}&quot;</span>, record.id(), umi_delineator, umi_str, indexes);
 
             <span class="comment">// Check if the UMI is at a valid position within the sequence and quality strings
             </span><span class="kw">if </span>umi_start &lt;= read_sequence.len() &amp;&amp; umi_start &lt;= record.qual().len() {
@@ -294,9 +304,9 @@
 
                 <span class="comment">// Create a new record with the UMI-trimmed sequence and quality
                 </span><span class="kw">let </span>new_record = Record::with_attrs(
-                    <span class="kw-2">&amp;</span>read_info_with_umi, 
-                    <span class="prelude-val">None</span>, 
-                    umi_trimmed_sequence, 
+                    <span class="kw-2">&amp;</span>read_info_with_umi,
+                    <span class="prelude-val">None</span>,
+                    umi_trimmed_sequence,
                     trimmed_quality,
                 );
 
@@ -307,17 +317,17 @@
             }
         }
     }
-    
+
     <span class="comment">// Return Ok if everything went well
     </span><span class="prelude-val">Ok</span>(())
 }
 
-<span class="doccomment">/// Extracts Unique Molecular Identifiers (UMIs) from a given gzipped fastq file and writes the 
-/// UMI-trimmed sequences to a new uncompressed fastq file. The UMIs are searched using a regex 
-/// pattern related to known adapter sequences and are appended to the 3&#39; adapter. 
+<span class="doccomment">/// Extracts Unique Molecular Identifiers (UMIs) from a given gzipped fastq file and writes the
+/// UMI-trimmed sequences to a new uncompressed fastq file. The UMIs are searched using a regex
+/// pattern related to known adapter sequences and are appended to the 3&#39; adapter.
 ///
 /// # Arguments
-/// * `input_fastq` - The path to the input gzipped fastq file. 
+/// * `input_fastq` - The path to the input gzipped fastq file.
 /// * `sample_name` - The name of the sample.
 /// * `umi_delineator` - Delimiter used between appended UMI and read name. The
 /// default is &quot;_&quot; as is used in UMI-tools.
@@ -328,16 +338,19 @@
 /// // This will create an output file named &quot;sample1.processed.fastq&quot; with UMI-trimmed sequences.
 /// ```
 ///
-/// Note: The UMI is extracted using the regex pattern &quot;AACTGTAGGCACCATCAAT(.{12})AGATCGGAAG&quot; 
-/// where the UMI is the 12 bases following the adapter sequence &quot;AACTGTAGGCACCATCAAT&quot; and before 
-/// the sequence &quot;AGATCGGAAG&quot;. This is different from the previous version where UMIs were 
+/// Note: The UMI is extracted using the regex pattern &quot;AACTGTAGGCACCATCAAT(.{12})AGATCGGAAG&quot;
+/// where the UMI is the 12 bases following the adapter sequence &quot;AACTGTAGGCACCATCAAT&quot; and before
+/// the sequence &quot;AGATCGGAAG&quot;. This is different from the previous version where UMIs were
 /// expected to be the first 12 characters of the sequence.
-</span><span class="kw">pub fn </span>extract_umis_qiagen(input_fastq: <span class="kw-2">&amp;</span>str, sample_name: <span class="kw-2">&amp;</span>str, umi_delineator: <span class="kw-2">&amp;</span>str) -&gt; std::io::Result&lt;()&gt; {
-    
+</span><span class="kw">pub fn </span>extract_umis_qiagen(
+    input_fastq: <span class="kw-2">&amp;</span>str,
+    sample_name: <span class="kw-2">&amp;</span>str,
+    umi_delineator: <span class="kw-2">&amp;</span>str,
+) -&gt; std::io::Result&lt;()&gt; {
     <span class="kw">let </span>input_file = File::open(input_fastq)<span class="question-mark">?</span>;
 
     <span class="comment">// Check if the file is gzipped or not
-    </span><span class="kw">let </span>reader: Box&lt;<span class="kw">dyn </span>Read&gt; = <span class="kw">if </span>is_gzipped(input_fastq).unwrap() {
+    </span><span class="kw">let </span>reader: Box&lt;<span class="kw">dyn </span>Read&gt; = <span class="kw">if </span>is_gzipped(input_fastq)<span class="question-mark">? </span>{
         Box::new(MultiGzDecoder::new(BufReader::new(input_file)))
     } <span class="kw">else </span>{
         Box::new(BufReader::new(input_file))
@@ -351,7 +364,7 @@
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">eprintln!</span>(<span class="string">&quot;Error reading record: {}&quot;</span>, err);
                 <span class="kw">continue</span>;
-            },
+            }
         };
 
         <span class="kw">let </span>read_sequence = <span class="kw">match </span>String::from_utf8(record.seq().to_vec()) {
@@ -359,9 +372,9 @@
             <span class="prelude-val">Err</span>(err) =&gt; {
                 <span class="macro">eprintln!</span>(<span class="string">&quot;Error decoding sequence as UTF-8: {}&quot;</span>, err);
                 <span class="kw">continue</span>;
-            },
+            }
         };
-        
+
         <span class="kw">if let </span><span class="prelude-val">Some</span>(captures) = UMI_REGEX_QIAGEN.captures(<span class="kw-2">&amp;</span>read_sequence) {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(umi_match) = captures.get(<span class="number">1</span>) {
                 <span class="kw">let </span>umi_str = umi_match.as_str();
@@ -371,20 +384,21 @@
                     <span class="prelude-val">Some</span>(matched) =&gt; matched.as_str(),
                     <span class="prelude-val">None </span>=&gt; <span class="kw">match </span>SINGLE_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
                         <span class="prelude-val">Some</span>(matched) =&gt; matched.as_str(),
-                        <span class="prelude-val">None </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Could not find index&quot;</span>),  
+                        <span class="prelude-val">None </span>=&gt; <span class="macro">panic!</span>(<span class="string">&quot;Could not find index&quot;</span>),
                     },
                 };
 
-                <span class="kw">let </span>read_info_with_umi = <span class="macro">format!</span>(<span class="string">&quot;{}{}{} {}&quot;</span>, record.id(), umi_delineator, umi_str, indexes);
+                <span class="kw">let </span>read_info_with_umi =
+                    <span class="macro">format!</span>(<span class="string">&quot;{}{}{} {}&quot;</span>, record.id(), umi_delineator, umi_str, indexes);
 
                 <span class="kw">if </span>umi_start &lt;= read_sequence.len() &amp;&amp; umi_start &lt;= record.qual().len() {
-                    <span class="kw">let </span>umi_trimmed_sequence = <span class="macro">format!</span>(<span class="string">&quot;{}&quot;</span>, <span class="kw-2">&amp;</span>read_sequence[..umi_start]);
+                    <span class="kw">let </span>umi_trimmed_sequence = read_sequence[..umi_start].to_string();
                     <span class="kw">let </span>trimmed_quality = <span class="kw-2">&amp;</span>record.qual()[..umi_start];
 
                     <span class="kw">let </span>new_record = Record::with_attrs(
-                        <span class="kw-2">&amp;</span>read_info_with_umi, 
-                        <span class="prelude-val">None</span>, 
-                        umi_trimmed_sequence.as_bytes(), 
+                        <span class="kw-2">&amp;</span>read_info_with_umi,
+                        <span class="prelude-val">None</span>,
+                        umi_trimmed_sequence.as_bytes(),
                         trimmed_quality,
                     );
 
@@ -395,7 +409,7 @@
             }
         }
     }
-    
+
     <span class="prelude-val">Ok</span>(())
 }
 </code></pre></div></section></main></body></html>

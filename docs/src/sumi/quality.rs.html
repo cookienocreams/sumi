@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/quality.rs`."><title>quality.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-f3501f0f5ae15dfb.css" id="mainThemeStyle"><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.71.1 (eb26296b5 2023-08-03)" data-search-js="search-4926e5fc22a5646a.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ></div><script src="../../static.files/storage-62ce34ea385b278a.js"></script><script defer src="../../static.files/source-script-11255107d0a65077.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-f0540c1d82cde29b.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Source of the Rust file `src/quality.rs`."><title>quality.rs - source</title><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Regular-46f98efaafac5295.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Regular-018c141bf0843ffd.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/FiraSans-Medium-8f9a781e4970d388.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Regular-562dcc5011b6de7d.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceSerif4-Bold-a2c9cd1067f8b328.ttf.woff2"><link rel="preload" as="font" type="font/woff2" crossorigin href="../../static.files/SourceCodePro-Semibold-d899c5a5c4aeb14a.ttf.woff2"><link rel="stylesheet" href="../../static.files/normalize-76eba96aa4d2e634.css"><link rel="stylesheet" href="../../static.files/rustdoc-9bb858ba049f1f21.css" id="mainThemeStyle"><meta name="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="sumi" data-themes="" data-resource-suffix="" data-rustdoc-version="1.72.1 (d5c2e9c34 2023-09-13)" data-channel="1.72.1" data-search-js="search-f6292fe389d70017.js" data-settings-js="settings-de11bff964e9d4e5.js" data-settings-css="settings-8c76f75bfb6bd192.css" data-theme-light-css="light-0f8c037637f9eb3e.css" data-theme-dark-css="dark-1097f8e92a01e3cf.css" data-theme-ayu-css="ayu-614652228113ac93.css" ><script src="../../static.files/storage-59fd9b8ccb335783.js"></script><script defer src="../../static.files/source-script-106908c7a7964ba4.js"></script><script defer src="../../source-files.js"></script><script defer src="../../static.files/main-0795b7d26be81095.js"></script><noscript><link rel="stylesheet" media="(prefers-color-scheme:light)" href="../../static.files/light-0f8c037637f9eb3e.css"><link rel="stylesheet" media="(prefers-color-scheme:dark)" href="../../static.files/dark-1097f8e92a01e3cf.css"><link rel="stylesheet" href="../../static.files/noscript-13285aec31fa243e.css"></noscript><link rel="alternate icon" type="image/png" href="../../static.files/favicon-16x16-8b506e7a72182f1c.png"><link rel="alternate icon" type="image/png" href="../../static.files/favicon-32x32-422f7d1d52889060.png"><link rel="icon" type="image/svg+xml" href="../../static.files/favicon-2c020d218678b618.svg"></head><body class="rustdoc source"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"></nav><main><nav class="sub"><a class="sub-logo-container" href="../../sumi/index.html"><img class="rust-logo" src="../../static.files/rust-logo-151179464ae7ed46.svg" alt="logo"></a><form class="search-form"><span></span><input class="search-input" name="search" aria-label="Run search in the documentation" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"><div id="help-button" title="help" tabindex="-1"><a href="../../help.html">?</a></div><div id="settings-menu" tabindex="-1"><a href="../../settings.html" title="settings"><img width="22" height="22" alt="Change settings" src="../../static.files/wheel-7b819b6101059cd0.svg"></a></div></form></nav><section id="main-content" class="content"><div class="example-wrap"><div data-nosnippet><pre class="src-line-numbers"><a href="#1" id="1">1</a>
 <a href="#2" id="2">2</a>
 <a href="#3" id="3">3</a>
 <a href="#4" id="4">4</a>
@@ -92,16 +92,15 @@
 <a href="#92" id="92">92</a>
 <a href="#93" id="93">93</a>
 <a href="#94" id="94">94</a>
-<a href="#95" id="95">95</a>
-</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::File;
-<span class="kw">use </span>bio::io::fastq::Reader;
+</pre></div><pre class="rust"><code><span class="kw">use </span><span class="kw">crate</span>::is_gzipped;
+<span class="kw">use </span><span class="kw">crate</span>::File;
 <span class="kw">use </span><span class="kw">crate</span>::Read;
-<span class="kw">use </span><span class="kw">crate</span>::is_gzipped;
+<span class="kw">use </span>bio::io::fastq::Reader;
 
 <span class="doccomment">/// Calcualte the mean of an input vector
 </span><span class="kw">pub fn </span>mean(numbers: <span class="kw-2">&amp;</span>Vec&lt;f32&gt;) -&gt; f32 {
     <span class="kw">let </span>sum: f32 = numbers.iter().sum();
-    sum <span class="kw">as </span>f32 / numbers.len() <span class="kw">as </span>f32
+    sum / numbers.len() <span class="kw">as </span>f32
 }
 
 <span class="doccomment">/// Get the total error probability from a record&#39;s quality scores
@@ -109,13 +108,13 @@
 /// This function accepts ASCII-encoded quality score and produces a scalar
 /// value that estimates the &#39;total error probability&#39; for that record.
 /// It means that if you want to calculate average quality score, you don&#39;t just sum
-/// up all the phred scores and find the average, but rather consider the 
+/// up all the phred scores and find the average, but rather consider the
 /// probability distribution of the scores.
 ///
 /// The Phred score for a base `Q` is calculated as `Q = ASCII value of quality score - 33`.
 /// The error probability `P` for that base is then calculated as `P = 10^(-Q/10)`.
 /// Then these probabilities are summed up for all the bases to derive total error.
-/// 
+///
 /// # Arguments
 ///
 /// `q_score` - The quality scores of the current record as an ASCII-encoded byte string.
@@ -131,7 +130,7 @@
 </span><span class="kw">pub fn </span>get_q_score_probability(q_score: <span class="kw-2">&amp;</span>[u8]) -&gt; f32 {
     <span class="kw">let </span><span class="kw-2">mut </span>probability_sum = <span class="number">0.0</span>;
     <span class="kw">for </span><span class="kw-2">&amp;</span>char <span class="kw">in </span>q_score.iter() {
-        <span class="kw">let </span>phred = <span class="kw-2">*&amp;</span>char <span class="kw">as </span>f32 - <span class="number">33.0</span>;
+        <span class="kw">let </span>phred = char <span class="kw">as </span>f32 - <span class="number">33.0</span>;
         <span class="kw">let </span>prob = <span class="number">10.0_f32</span>.powf(-phred / <span class="number">10.0</span>);
         probability_sum += prob
     }
@@ -141,9 +140,9 @@
 <span class="doccomment">/// Calculate the average quality score of a FASTQ file
 ///
 /// This function will calculate the average quality score for all records in a FASTQ file.
-/// The function will calculate total error probability for a record from it&#39;s quality score 
-/// using ` get_q_score_probability` function. This value represents the probability of error 
-/// for each base, then divided by total number of sequences in fastq file. The per-base error 
+/// The function will calculate total error probability for a record from it&#39;s quality score
+/// using ` get_q_score_probability` function. This value represents the probability of error
+/// for each base, then divided by total number of sequences in fastq file. The per-base error
 /// rates are then transformed back to a Phred scale and averaged across all bases.
 ///
 /// # Arguments
@@ -155,7 +154,7 @@
 /// - The average Phred Quality Score of all bases in the FASTQ file
 ///
 /// # Errors
-/// 
+///
 /// This function will return an error if:
 /// - The FASTQ file cannot be opened for any reason.
 /// - There is an interruption while reading the file.
@@ -167,12 +166,11 @@
 /// ```
 </span><span class="kw">pub fn </span>average_read_quality(input_fastq: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;f32, Box&lt;<span class="kw">dyn </span>std::error::Error&gt;&gt; {
     <span class="kw">let </span>file = File::open(input_fastq)<span class="question-mark">?</span>;
-    <span class="kw">let </span>reader: Box&lt;<span class="kw">dyn </span>Read&gt;;
 
-    <span class="kw">if </span>is_gzipped(input_fastq).expect(<span class="string">&quot;Fastqs checked in main file&quot;</span>) {
-        reader = Box::new(flate2::read::GzDecoder::new(file))
+    <span class="kw">let </span>reader: Box&lt;<span class="kw">dyn </span>Read&gt; = <span class="kw">if </span>is_gzipped(input_fastq).expect(<span class="string">&quot;Fastqs checked in main file&quot;</span>) {
+        Box::new(flate2::read::GzDecoder::new(file))
     } <span class="kw">else </span>{
-        reader = Box::new(std::io::BufReader::new(file))
+        Box::new(std::io::BufReader::new(file))
     };
 
     <span class="kw">let </span><span class="kw-2">mut </span>q_score_list = Vec::new();
