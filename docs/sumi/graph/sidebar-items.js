@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["build_substring_index","deduplicate_bam","find_true_umis","get_representative_umis_bfs","umi_graph"],"type":["UmiGraph"]};
+window.SIDEBAR_ITEMS = {"fn":["build_substring_index","deduplicate_bam","find_true_isomir_umis","find_true_umis","get_representative_umis_bfs","umi_graph"],"type":["UmiGraph"]};

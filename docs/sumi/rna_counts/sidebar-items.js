@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["MyError"],"fn":["generate_rna_counts","get_percent_alignment","is_sam_file_empty","rna_discovery_calculation"]};
+window.SIDEBAR_ITEMS = {"enum":["MyError"],"fn":["bowtie2_analysis","generate_rna_counts","get_percent_alignment","is_sam_file_empty","rna_discovery_calculation"]};
