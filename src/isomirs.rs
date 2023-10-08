@@ -295,7 +295,7 @@ pub fn sequences_with_hamming_distance_of_1(seq: &str) -> Vec<String> {
         for &replacement in ['A', 'C', 'G', 'T'].iter() {
             if nucleotide != replacement {
                 let mut new_seq = seq.to_string();
-                new_seq.replace_range(index..index+1, &replacement.to_string());
+                new_seq.replace_range(index..index + 1, &replacement.to_string());
                 sequences.push(new_seq);
             }
         }
@@ -370,7 +370,7 @@ pub fn isomir_analysis(
 
     // Create potential isomiRs HashMap to compare against each read sequence
     for (mirna_seq, mirna_name) in &mirna_hm {
-        let potential_isomirs = create_isomirs(mirna_seq.to_string(), 2, max_diffs);
+        let potential_isomirs = create_isomirs(mirna_seq.to_string(), max_diffs.min(2), max_diffs);
 
         for isomir in &potential_isomirs {
 
@@ -384,11 +384,11 @@ pub fn isomir_analysis(
 
     // Get a reference to the appropriate miRNA HashMap
     let selected_hm = 
-    if config.mismatch {
-        &mirna_hm_mismatch
-    } else {
-        &mirna_hm
-    };
+        if config.mismatch {
+            &mirna_hm_mismatch
+        } else {
+            &mirna_hm
+        };
 
     while let Some(Ok(record)) = file.next() {
         // Convert the byte sequence to a string
@@ -396,9 +396,7 @@ pub fn isomir_analysis(
         let read_name = record.id();
         
         // Check if the sequence is a canonical miRNA
-        if selected_hm.contains_key(read_sequence) {
-            let mirna_name = selected_hm.get(read_sequence).expect("Key already checked");
-
+        if let Some(mirna_name) = selected_hm.get(read_sequence) {
             // Get UMI sequence from the read name
             if let Some(captures) = READ_NAME_UMI_REGEX.captures(read_name) {
                 let umi = captures.get(1).unwrap().as_str();
@@ -409,9 +407,7 @@ pub fn isomir_analysis(
             *mirna_counts.entry(mirna_name.to_string()).or_insert(0) += 1;
         } 
         // Check if the sequence is an isomiR
-        else if isomir_info.contains_key(read_sequence) && !mirna_hm.contains_key(read_sequence) {
-            let (isomir, mirna_entry) = isomir_info.get_key_value(read_sequence).expect("Key already checked");
-
+        if let Some((isomir, mirna_entry)) = isomir_info.get_key_value(read_sequence) {
             // Define isomiR name based on additions or deletions
             let isomir_name = 
                 get_isomir_name(
@@ -593,7 +589,7 @@ pub fn get_isomir_name(
                 if mirna[i..].starts_with(&isomir[..isomir.len() - i]) {
                     modifications.insert("5' deletion".to_string(), mirna[0..i].to_string());
                 }
-                if mirna[max_diffs..mirna_len-i].ends_with(&isomir[isomir.len() - i..]) {
+                if mirna[max_diffs..mirna_len-i].ends_with(&isomir[i..]) {
                     modifications.insert("3' deletion".to_string(), mirna[mirna_len - i..].to_string());
                 }
                 if isomir[i..].starts_with(&mirna[..isomir.len() - i]) {
