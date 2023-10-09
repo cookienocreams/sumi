@@ -200,7 +200,7 @@ pub fn capture_target_files(files_to_capture: &str, fasta_search: bool) -> Vec<S
                     }
                 }
             }
-            Err(e) => println!("{:?}", e),
+            Err(err) => println!("{:?}", err),
         }
     }
 
@@ -209,6 +209,7 @@ pub fn capture_target_files(files_to_capture: &str, fasta_search: bool) -> Vec<S
     files
 }
 
+/// Gather intermediate files for deletion.
 pub fn capture_files_to_delete(files_to_capture: &str) -> Vec<String> {
     let mut files: Vec<String> = Vec::new();
     let pattern = format!("*{}*", files_to_capture);
@@ -222,7 +223,7 @@ pub fn capture_files_to_delete(files_to_capture: &str) -> Vec<String> {
                     }
                 }
             }
-            Err(e) => println!("{:?}", e),
+            Err(err) => println!("{:?}", err),
         }
     }
 
@@ -237,6 +238,45 @@ pub fn is_gzipped(filename: &str) -> io::Result<bool> {
     let mut buffer = [0; 2]; // Buffer to store the first two bytes
     file.read_exact(&mut buffer)?;
     Ok(buffer == [0x1f, 0x8b])
+}
+
+/// Extracts the length of the UMI (Unique Molecular Identifier) and intermediate bases 
+/// from a given regex pattern.
+///
+/// This function calculates the total length of the UMI by summing the lengths of capture groups
+/// specified in the regex pattern and any intermediate bases present between the UMI groups.
+///
+/// # Arguments
+///
+/// * `input_regex` - A string slice that holds the regex pattern used for UMI extraction.
+///
+/// # Returns
+///
+/// * The calculated length of the UMI and intermediate bases.
+///
+/// # Examples
+///
+/// ```
+/// let input_regex = "^(.{12})";
+/// let umi_length = get_umi_length(input_regex);
+/// assert_eq!(umi_length, 12);
+/// ```
+fn get_umi_length(input_regex: &str) -> u8 {
+    let mut umi_sum: u8 = 0;
+
+    // Get length of UMI by combining the numbers in the capture groups in the regex pattern
+    for captures in NUM_CAPTURE_REGEX.captures_iter(input_regex) {
+        if let Ok(num) = captures[1].parse::<u8>() {
+            umi_sum += num;
+        }
+    }
+
+    // Get length of intermediate bases between UMI groups if present
+    for capture in BASE_CAPTURE_REGEX.find_iter(input_regex) {
+        umi_sum += capture.as_str().len() as u8;
+    }
+
+    if umi_sum != 12 { umi_sum } else { 12 }
 }
 
 /// Calculates the minimum length to allow post adapter trimming.
@@ -268,33 +308,15 @@ pub fn is_gzipped(filename: &str) -> io::Result<bool> {
 /// let minimum_length = calculate_minimum_length(input_regex, min_length, is_qiagen);
 /// ```
 pub fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen: bool) -> u8 {
-    let mut umi_sum: u8 = 0;
+    let umi_length = get_umi_length(input_regex);
 
-    // Get length of UMI by combining the numbers in the capture groups in the regex pattern
-    for captures in NUM_CAPTURE_REGEX.captures_iter(input_regex) {
-        if let Ok(num) = captures[1].parse::<u8>() {
-            umi_sum += num;
-        }
-    }
-
-    // Get length of intermediate bases between UMI groups if present
-    for capture in BASE_CAPTURE_REGEX.find_iter(input_regex) {
-        umi_sum += capture.as_str().len() as u8;
-    }
-
-    // Set the minimum fragment length taking UMI length into account
-    let mut min_length = minimum_length;
-    let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
-
-    min_length = if min_length != 16 && !is_qiagen {
-        min_length + umi_length
-    } else if min_length == 16 && !is_qiagen {
-        16 + umi_length
-    } else {
+    if is_qiagen {
         16 // Set minimum length for Qiagen to 16 since the UMI is on the 3' end after the adapter
-    };
-
-    min_length
+    } else if minimum_length != 16 {
+        minimum_length + umi_length
+    } else {
+        16 + umi_length
+    }
 }
 
 /// Calculates the maximum length to allow post adapter trimming.
@@ -326,33 +348,15 @@ pub fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen
 /// let maximum_length = calculate_maximum_length(input_regex, max_length, is_qiagen);
 /// ```
 pub fn calculate_maximum_length(input_regex: &str, maximum_length: u8, is_qiagen: bool) -> u8 {
-    let mut umi_sum: u8 = 0;
+    let umi_length = get_umi_length(input_regex);
 
-    // Get length of UMI by combining the numbers in the capture groups in the regex pattern
-    for captures in NUM_CAPTURE_REGEX.captures_iter(input_regex) {
-        if let Ok(num) = captures[1].parse::<u8>() {
-            umi_sum += num;
-        }
-    }
-
-    // Get length of intermediate bases between UMI groups if present
-    for capture in BASE_CAPTURE_REGEX.find_iter(input_regex) {
-        umi_sum += capture.as_str().len() as u8;
-    }
-
-    // Set the minimum fragment length taking UMI length into account
-    let mut max_length = maximum_length;
-    let umi_length = if umi_sum != 12 { umi_sum } else { 12 };
-
-    max_length = if max_length != 30 && !is_qiagen {
-        max_length + umi_length
-    } else if max_length == 30 && !is_qiagen {
-        30 + umi_length
-    } else {
+    if is_qiagen {
         30 // Set maximum length for Qiagen to 30 since the UMI is on the 3' end after the adapter
-    };
-
-    max_length
+    } else if maximum_length != 30 {
+        maximum_length + umi_length
+    } else {
+        30 + umi_length
+    }
 }
 
 /// Find how many reads are in each fastq file.
@@ -656,9 +660,9 @@ pub fn main() -> io::Result<()> {
                     );
                 }
             }
-            Err(e) => panic!(
+            Err(err) => panic!(
                 "Failed to check if file {} is gzipped due to error: {}",
-                fastq, e
+                fastq, err
             ),
         };
     }
@@ -731,10 +735,13 @@ pub fn main() -> io::Result<()> {
 
     // Calculate number of RNA in each sample
     // Error correct UMIs in sample bam file
-    let Ok(sam_files) = rna_discovery_calculation(trimmed_fastqs
-                                                                , sample_names.clone()
-                                                                , &config)
-                                                                else {panic!("An error occurred during the RNA counting calculation")};
+    let Ok(sam_files) = 
+        rna_discovery_calculation(trimmed_fastqs
+                                , sample_names.clone()
+                                , &config)
+                                else {
+                                    panic!("An error occurred during the RNA counting calculation")
+                                };
 
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name), false);
 
@@ -758,6 +765,7 @@ pub fn main() -> io::Result<()> {
 
     let (full_rna_names_list, rna_info, rpm_info) =
         find_common_rnas(rna_counts_files, sample_names.clone());
+        
     write_common_rna_file(
         full_rna_names_list.clone(),
         rna_info,

@@ -431,42 +431,42 @@ pub fn isomir_analysis(
     }
 
     // Error correct UMIs in sample bam file
-    let representative_isomir_umis: HashSet<Vec<u8>> = find_true_isomir_umis(
+    let representative_isomir_umis = find_true_isomir_umis(
         isomir_umi_counts.clone(),
         config.levenshtein_distance,
     )?;
 
     // Error correct UMIs in sample bam file
-    let representative_mirna_umis: HashSet<Vec<u8>> = find_true_isomir_umis(
+    let representative_mirna_umis = find_true_isomir_umis(
         mirna_umi_counts.clone(),
         config.levenshtein_distance,
     )?;
 
     // Deduplicate mapped isomirs
     let dedup_isomir_counts = 
-    match calculate_read_counts(
-        representative_isomir_umis,
-        sample_name,
-        isomir_umis,
-        isomir_seqs.clone(),
-        true
-    ) {
-        Ok(rna_names) => rna_names,
-        Err(e) => panic!("{}", e)
-    };
+        match calculate_read_counts(
+            representative_isomir_umis,
+            sample_name,
+            isomir_umis,
+            isomir_seqs.clone(),
+            true
+        ) {
+            Ok(rna_names) => rna_names,
+            Err(e) => panic!("{}", e)
+        };
 
     // Deduplicate mapped mirnas
     let dedup_mirna_counts = 
-    match calculate_read_counts(
-        representative_mirna_umis,
-        sample_name,
-        mirna_umis,
-        mirna_counts,
-        false
-    ) {
-        Ok(rna_names) => rna_names,
-        Err(e) => panic!("{}", e)
-    };
+        match calculate_read_counts(
+            representative_mirna_umis,
+            sample_name,
+            mirna_umis,
+            mirna_counts,
+            false
+        ) {
+            Ok(rna_names) => rna_names,
+            Err(e) => panic!("{}", e)
+        };
 
     Ok((dedup_isomir_counts, dedup_mirna_counts))
 }
@@ -497,41 +497,41 @@ pub fn isomir_analysis(
 /// let isomir_name = construct_isomir_name("hsa-miR-9-5p", &modifications);
 /// assert_eq!(isomir_name, "hsa-miR-9-5p.AAs");
 /// ```
-pub fn construct_isomir_name(base_name: &str, modifications: &HashMap<String, String>) -> String {
+pub fn construct_isomir_name(base_name: &str, modifications: &HashMap<String, String>) -> Option<String> {
     let mut name = base_name.to_string();
 
     // Use conditions and string concatenation to craft isomiR name
     if modifications.contains_key("5' addition") {
-        name += &format!(".{}s", modifications.get("5' addition").unwrap());
+        name += &format!(".{}s", modifications.get("5' addition")?);
     }
     if modifications.contains_key("5' deletion") {
-        name += &format!(".{}s", modifications.get("5' deletion").unwrap().to_lowercase());
+        name += &format!(".{}s", modifications.get("5' deletion")?.to_lowercase());
     }
     if modifications.contains_key("3' addition") {
-        name += &format!(".{}", modifications.get("3' addition").unwrap());
+        name += &format!(".{}", modifications.get("3' addition")?);
     }
     if modifications.contains_key("3' non-template addition") {
-        name += &format!(".{}e", modifications.get("3' non-template addition").unwrap());
+        name += &format!(".{}e", modifications.get("3' non-template addition")?);
     }
     if modifications.contains_key("3' deletion") {
-        name += &format!(".{}", modifications.get("3' deletion").unwrap().to_lowercase());
+        name += &format!(".{}", modifications.get("3' deletion")?.to_lowercase());
     }
     if modifications.contains_key("5' mutation") {
         name += &format!(".{}1{}", 
-            modifications.get("5' mutation").unwrap().chars().last().unwrap(), 
-            modifications.get("5' mutation").unwrap().chars().next().unwrap()
+            modifications.get("5' mutation")?.chars().last()?, 
+            modifications.get("5' mutation")?.chars().next()?
         );
     }
     if modifications.contains_key("3' mutation") {
         name += &format!(".{}{}{}{}", 
-            modifications.get("3' mutation").unwrap().chars().last().unwrap(), 
-            modifications.get("3' mutation").unwrap().chars().nth(1).unwrap(),
-            modifications.get("3' mutation").unwrap().chars().nth(2).unwrap(),
-            modifications.get("3' mutation").unwrap().chars().next().unwrap()
+            modifications.get("3' mutation")?.chars().last()?,
+            modifications.get("3' mutation")?.chars().nth(1)?,
+            modifications.get("3' mutation")?.chars().nth(2)?,
+            modifications.get("3' mutation")?.chars().next()?
         );
     }
 
-    name
+    Some(name)
 }
 
 /// Retrieve the name of an isomiR based on the provided miRNA sequence, isomiR sequence, and a base miRNA name.
@@ -641,7 +641,7 @@ pub fn get_isomir_name(
         seed_and_extend(&mirna, &isomir, 12, &mut modifications)
     }
 
-    construct_isomir_name(&mirna_name, &modifications)
+    construct_isomir_name(&mirna_name, &modifications).expect("Failed to get isomiR name.")
 }
 
 /// Return a seed of specified length from the center of the reference sequence.
