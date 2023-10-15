@@ -197,10 +197,14 @@ pub fn create_isomirs(
         }
 
         // If the current 5' modification is an addition of a base
-        if i > 0 {
-            for base in &bases {
-                let extended_5_sequence = format!("{}{}", base, trimmed_5p_sequence);
-                isomirs.insert(extended_5_sequence);
+        for base in &bases {
+            let extended_5_sequence = format!("{}{}", base, trimmed_5p_sequence);
+            isomirs.insert(extended_5_sequence.clone());
+
+            // For each truncation at the 3' end
+            for k in 1..=end_buffer_size {
+                let further_trimmed = &extended_5_sequence[..extended_5_sequence.len() - k];
+                isomirs.insert(further_trimmed.to_string());
             }
         }
     }
