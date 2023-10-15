@@ -32,6 +32,8 @@ use std::io::Write;
 pub fn find_common_rnas(
     rna_counts_files: Vec<String>,
     sample_names: Vec<String>,
+    count_col: usize,
+    rpm_col: usize,
 ) -> (
     Vec<std::string::String>,
     Vec<HashMap<std::string::String, i32>>,
@@ -57,8 +59,8 @@ pub fn find_common_rnas(
             let record = line.unwrap();
             let fields: Vec<&str> = record.split(',').collect(); // Use split to split the record into fields
             let rna_name = fields[0].to_string();
-            let rna_count: usize = fields[1].parse().unwrap(); // Parse count as usize
-            let rpm: f64 = fields[2].parse().unwrap();
+            let rna_count: usize = fields[count_col].parse().unwrap(); // Parse count as usize
+            let rpm: f64 = fields[rpm_col].parse().unwrap();
 
             // Store RNA count and RPM in the dictionaries for the current sample
             sample_rna_counts_dictionary.insert(rna_name.clone(), rna_count as i32); // Convert rna_count to i32

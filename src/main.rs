@@ -764,15 +764,30 @@ pub fn main() -> io::Result<()> {
     );
 
     let (full_rna_names_list, rna_info, rpm_info) =
-        find_common_rnas(rna_counts_files, sample_names.clone());
+        find_common_rnas(rna_counts_files, sample_names.clone(), 1, 2);
         
     write_common_rna_file(
         full_rna_names_list.clone(),
         rna_info,
         rpm_info,
-        sample_names,
+        sample_names.clone(),
         reference_name,
     );
+
+    if let true = config.isomirs {
+        let rna_counts_files = capture_target_files(&format!("_isomiR_counts"), false);
+
+        let (full_rna_names_list, rna_info, rpm_info) =
+        find_common_rnas(rna_counts_files, sample_names.clone(), 2, 3);
+        
+        write_common_rna_file(
+            full_rna_names_list.clone(),
+            rna_info,
+            rpm_info,
+            sample_names,
+            "isomiR",
+        );
+    }
 
     // Remove intermediate files, such as bam and sam files, unless otherwise specified
     if !config.keep_intermediate_files {
