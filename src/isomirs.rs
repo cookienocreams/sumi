@@ -601,6 +601,10 @@ pub fn get_isomir_name(
                 if mirna[max_diffs..mirna_len-i].ends_with(&isomir[i..]) {
                     modifications.insert("3' deletion".to_string(), mirna[mirna_len - i..].to_string());
                 }
+                // Case of 5' addition and 3' deletion
+                if mirna[max_diffs..mirna_len-i].ends_with(&isomir[max_diffs + i..]) {
+                    modifications.insert("3' deletion".to_string(), mirna[mirna_len - i..].to_string());
+                }
                 if isomir[i..].starts_with(&mirna[..isomir.len() - i]) {
                     modifications.insert("5' addition".to_string(), isomir[0..i].to_string());
                 }
