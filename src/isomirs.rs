@@ -204,6 +204,15 @@ pub fn create_isomirs(
             }
         }
     }
+    
+    // Add sequences with a single base mutation on the 3' end
+    let mut mutated_sequence = mirna.clone();
+    for base in &bases {
+        let last_idx = mutated_sequence.len() - 1;
+        mutated_sequence.replace_range(last_idx.., &base.to_string());
+        isomirs.insert(mutated_sequence.clone());
+    }
+
     // Remove the reference miRNA sequence
     isomirs.remove(&mirna);
 
@@ -732,9 +741,6 @@ pub fn seed_and_extend(
                 let next_seed_base = new_seq.chars().nth(seed_pos_in_new_seq - i).unwrap();
                 seed.insert_str(0, &String::from(next_seed_base));
                 
-                // Clear string after each round
-                front_diff_bases.clear();
-                
                 // Continue to search backwards and keep track of 5' bases
                 if let Some(pos) = new_seq.find(&seed) {
                     front_diff_bases.push_str(&ref_seq[..(seed_pos_in_new_seq - pos).min(pos + 1)]);
@@ -749,8 +755,6 @@ pub fn seed_and_extend(
                 // Extend towards the 3' end
                 let next_seed_base = new_seq.chars().nth(seed_pos_in_new_seq + seed_len + i).unwrap();
                 seed.insert_str(seed.len(), &String::from(next_seed_base));
-                
-                rear_diff_bases.clear();
                 
                 // Continue to search forwards and keep track of 3' bases
                 if let Some(pos) = new_seq.find(&seed) {
