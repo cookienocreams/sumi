@@ -411,9 +411,9 @@ pub fn rna_discovery_calculation(
                     .write_record([
                         sample_name,
                         &count.to_string(),
-                        &avg_quality.to_string(),
-                        &percent_alignment.to_string(),
-                        &percent_isomir.to_string(),
+                        &format!("{:.2}", avg_quality),
+                        &format!("{:.4}", percent_alignment),
+                        &format!("{:.4}", percent_isomir),
                         &unique_rnas.to_string(),
                         &unique_isomirs.to_string(),
                     ])?;
@@ -425,8 +425,8 @@ pub fn rna_discovery_calculation(
                     .write_record([
                         sample_name,
                         &count.to_string(),
-                        &avg_quality.to_string(),
-                        &percent_alignment.to_string(),
+                        &format!("{:.2}", avg_quality),
+                        &format!("{:.4}", percent_alignment),
                         &unique_rnas.to_string(),
                     ])?;
                 }
