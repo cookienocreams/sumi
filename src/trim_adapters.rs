@@ -1,4 +1,5 @@
 use crate::extract_umis;
+use crate::extract_umis_qiagen;
 use crate::Command;
 use crate::HashMap;
 use crate::Path;
@@ -38,10 +39,6 @@ pub fn trim_adapters(
     minimum_length: u8,
     maximum_length: u8,
     umi_regex: &Regex,
-    adapter: &String,
-    is_qiagen: bool,
-    is_3p: bool,
-    mismatch: bool
 ) -> Vec<String> {
     let num_of_fastqs = fastqs.len() as u64;
     let progress_br = ProgressBar::new(num_of_fastqs);
@@ -63,20 +60,20 @@ pub fn trim_adapters(
         let max_length_string = maximum_length.to_string();
         let too_short_output = format!("{}.short.fastq", sample_name);
 
-        // Set cutadapt args to remove untrimmed reads and require a quality score > 25
+        // Set cutadapt args to remove untrimmed reads and require a quality score > 20
         let mut cutadapt_args: Vec<&str> = vec![
             "--cores=0",
             "--discard-untrimmed",
             "--quality-cutoff",
-            "25,25",
+            "20,20",
             "--adapter",
         ];
 
-        // Determine order of UMI extraction and adapter trimming
-        let umi_loc = library_type.get(&sample_name.to_string()).unwrap().as_str();
-        match umi_loc {
-            "standard" => { // Standard meaning the UMI is located between the adapters
+        // Set library type being analyzed
+        match library_type.get(&sample_name.to_string()).unwrap().as_str() {
+            "UMI" => {
                 let output_file_name = format!("{}.unprocessed.cut.fastq", sample_name);
+                let adapter: &str = "TGGAATTCTCGGGTGCCAAGG";
                 cutadapt_args.extend([
                     adapter,
                     "--output",
@@ -89,40 +86,37 @@ pub fn trim_adapters(
                     &too_short_output,
                     fastq_file,
                 ]);
-    
+
                 // Call cutadapt
                 let output = Command::new("cutadapt").args(&cutadapt_args).output();
-    
+
                 match output {
                     Ok(_) => (),
-                    Err(ref err) => eprintln!("Error running cutadapt: {:?}", err),
+                    Err(ref error) => eprintln!("Error running cutadapt: {:?}", error),
                 }
-    
+
                 // Call function to extract UMIs from each read
                 if let Some(extract) = Some(extract_umis) {
-                    let args = (&output_file_name, sample_name, "_", umi_regex, adapter, is_qiagen, is_3p, mismatch);
-                    if let Err(err) = extract(args.0, args.1, args.2, args.3, args.4, args.5, args.6, args.7) {
-                        eprintln!("Error when extracting UMIs: {:?}", err);
+                    let args = (sample_name, "_");
+                    if let Err(e) = extract(args.0, args.1, umi_regex) {
+                        eprintln!("Error when extracting UMIs: {:?}", e);
                     }
-                }
-    
-                let output_filename = format!("{}.processed.fastq", sample_name);
-                if Path::new(&output_filename).exists() {
-                    trimmed_fastq_files.push(output_filename);
                 }
             }
-            "qiagen" => {
+            "Qiagen" => {
+                let adapter = "AACTGTAGGCACCATCAAT";
+
                 // Extraction must come first because trimming the 3' adapter first would remove the UMI
-                if let Some(extract) = Some(extract_umis) {
-                    let args = (fastq_file, sample_name, "_", umi_regex, adapter, is_qiagen, is_3p, mismatch);
-                    if let Err(err) = extract(args.0, args.1, args.2, args.3, args.4, args.5, args.6, args.7) {
-                        eprintln!("Error when extracting UMIs: {:?}", err);
+                if let Some(extract) = Some(extract_umis_qiagen) {
+                    let args = (fastq_file, sample_name, "_");
+                    if let Err(e) = extract(args.0, args.1, args.2) {
+                        eprintln!("Error when extracting UMIs: {:?}", e);
                     }
                 }
-    
+
                 let fastq = format!("{}.processed.fastq", sample_name);
                 let output_file_name = format!("{}.cut.fastq", sample_name);
-    
+
                 cutadapt_args.extend([
                     adapter,
                     "--output",
@@ -133,23 +127,24 @@ pub fn trim_adapters(
                     &too_short_output,
                     &fastq,
                 ]);
-    
+
                 let output = Command::new("cutadapt").args(&cutadapt_args).output();
-    
+
                 match output {
                     Ok(_) => (),
-                    Err(ref err) => eprintln!("Error running cutadapt: {:?}", err),
-                }
-    
-                let output_filename = format!("{}.cut.fastq", sample_name);
-                if Path::new(&output_filename).exists() {
-                    trimmed_fastq_files.push(output_filename);
+                    Err(ref error) => eprintln!("Error running cutadapt: {:?}", error),
                 }
             }
             _ => {
                 panic!("Unknown library type.");
             }
-        } 
+        }
+
+        let output_filename = format!("{}.cut.fastq", sample_name);
+        if Path::new(&output_filename).exists() {
+            trimmed_fastq_files.push(output_filename);
+        }
+
         progress_br.inc(1);
     }
 

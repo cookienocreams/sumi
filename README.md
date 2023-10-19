@@ -37,7 +37,7 @@ The next step is to install all libraries and their dependencies and compile the
 cargo build --release
 ```
 
-Before the binary can be used, it must be made executable. The compliled binary will be in `./target/release/`.
+Before the binday can be used, it must be made executable. The compliled binary will be in `./target/release/`.
 
 ```bash
 chmod +x ./target/release/sumi 
@@ -56,25 +56,12 @@ in `/home/user/data/`, a 12 bp UMI on the 5' end with the structure "NNNNNCCANNT
 
 ```bash
 cd fastqs
-./sumi --reference /home/user/data/miRNA --umi-regex "^(.{5})CCA(.{2})TCA(.{5})" --threads 8
+./sumi --reference /home/user/data/miRNA --umi_regex "(.{5})CCA(.{2})TCA(.{5})" --threads 24
 ```
 
 To check for isomiRs and generate counts and the alignment information, run the following command. 
 Note that the isomiR and canonical miRNA percentages are separated.
 
 ```bash
-./sumi --reference /home/user/data/miRNA --isomir --write-metrics
-```
-
-This can be used to analyze libraries with a 12 bp 3' UMI with a 1 bp mismatch allowed during alignment.
-Make sure the regex pattern contains an anchor, such as `'$'`, so that it is specific to the 3' end.
-
-```bash
-./sumi --reference /home/user/data/miRNA --3p --umi-regex "(.{12}$)" --mismatch
-```
-
-For analyzing isomiRs in Qiagen libraries use this command, there is no need to specify the UMI is on the 3' end or regex pattern.
-
-```bash
-./sumi --reference /home/user/data/miRNA --isomir --qiagen
+./sumi --reference /home/user/data/miRNA --isomir --write_metrics
 ```

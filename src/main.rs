@@ -12,6 +12,7 @@ pub mod isomirs;
 use crate::common::find_common_rnas;
 use crate::common::write_common_rna_file;
 use crate::extract_umis::extract_umis;
+use crate::extract_umis::extract_umis_qiagen;
 use crate::lengths::calculate_read_length_distribution;
 use crate::rna_counts::rna_discovery_calculation;
 use crate::sample::count_reads;
@@ -75,9 +76,6 @@ lazy_static! {
 /// * `isomirs` - A flag indicating whether to count the occurrence of isomiRs with base additions or deletions on either end.
 /// * `max_isomir_diff` - The maximum number of additional bases to be considered for extension or deletion on each end.
 /// * `mismatch` - A flag indicating whether to allow a 1 bp mismatch during alignment.
-/// * `adapter` - The 3' adapter sequence.
-/// * `three_p` - A flag indicating whether the UMI is on the 3' end of the sequence.
-/// * `adapter_mismatch` - A flag indicating whether to allow a 1 bp mismatch during alignment.
 #[derive(Debug)]
 pub struct Config {
     minimum_length: u8,
@@ -97,9 +95,6 @@ pub struct Config {
     isomirs: bool,
     max_isomir_diff: usize,
     mismatch: bool,
-    adapter: String,
-    three_p: bool,
-    adapter_mismatch: bool,
 }
 
 impl Config {
@@ -148,14 +143,6 @@ impl Config {
         let isomirs = matches.is_present("isomirs");
         let max_isomir_diff = *matches.get_one("max_isomir_diff").unwrap();
         let mismatch = matches.is_present("mismatch");
-        let adapter = 
-            if qiagen {
-                "AACTGTAGGCACCATCAAT".to_string()
-            } else {
-                matches.value_of("adapter").unwrap().to_string()
-            };
-        let three_p = matches.is_present("three_p");
-        let adapter_mismatch = matches.is_present("adapter_mismatch");
 
         Self {
             minimum_length,
@@ -175,9 +162,6 @@ impl Config {
             isomirs,
             max_isomir_diff,
             mismatch,
-            adapter,
-            three_p,
-            adapter_mismatch,
         }
     }
 }
@@ -277,7 +261,7 @@ pub fn is_gzipped(filename: &str) -> io::Result<bool> {
 /// let umi_length = get_umi_length(input_regex);
 /// assert_eq!(umi_length, 12);
 /// ```
-pub fn get_umi_length(input_regex: &str) -> u8 {
+fn get_umi_length(input_regex: &str) -> u8 {
     let mut umi_sum: u8 = 0;
 
     // Get length of UMI by combining the numbers in the capture groups in the regex pattern
@@ -384,9 +368,9 @@ pub fn calculate_maximum_length(input_regex: &str, maximum_length: u8, is_qiagen
 ///
 /// # Returns
 ///
-/// This function will return a HashMap with the name of the fastq file as the key and the 
-/// read count as the value. If an error occurs while reading any of the files, the error 
-/// will be returned instead.
+/// This function will return a HashMap as a Result<HashMap<String, u64>, Box<dyn std::error::Error>>`
+/// with the name of the fastq file as the key and the read count as the value.
+/// If an error occurs while reading any of the files, the error will be returned instead.
 ///
 /// # Examples
 ///
@@ -423,7 +407,7 @@ pub fn get_read_counts(
         progress_br.inc(1);
     }
 
-    progress_br.finish_with_message("Finished counting reads");
+    progress_br.finish_with_message("Finished counting reads.");
 
     Ok(read_counts)
 }
@@ -560,7 +544,7 @@ pub fn main() -> io::Result<()> {
         .arg(
             Arg::with_name("write_metrics")
                 .short('M')
-                .long("write-metrics")
+                .long("write_metrics")
                 .takes_value(false)
                 .help("Set flag to write output file containing each fastq's RNA alignment\
                 , average quality score, and read count in an output file.")
@@ -614,7 +598,7 @@ pub fn main() -> io::Result<()> {
         .arg(
             Arg::with_name("umi_regex")
             .short('p')
-            .long("umi-regex")
+            .long("umi_regex")
             .value_name("UMI_REGEX")
             .help("The regular expression pattern to capture each UMI. This pattern should contain capture \
                 groups for the UMI bases and can include any intermediate bases.\n\n\
@@ -634,43 +618,12 @@ pub fn main() -> io::Result<()> {
                 .takes_value(false)
                 .help("Allow a 1 bp mismatch during sequence alignment. Default is to disallow mismatches.")
         )
-        .arg(
-            Arg::with_name("adapter_mismatch")
-                .long("adapter-mismatch")
-                .takes_value(false)
-                .help("Allow mismatches and indels when using 3' adapter sequence to find the UMI \
-                in each read. Since the search uses the Smith-Waterman algorithm for local alignment, \
-                it can significantly increase runtime. This doesn't apply to reads with a 5' UMI \
-                as cutadapt already includes error tolerant adapter trimmming. Default is to disallow errors.")
-        )
-        .arg(
-            Arg::with_name("adapter")
-                .short('a')
-                .long("adapter")
-                .value_name("ADAPTER_SEQUENCE")
-                .help("The 3' adapter sequence to be trimmed. It also serves as the anchor \
-                for capturing UMIs on the 3' end of a read.")
-                .takes_value(true)
-                .default_value("TGGAATTCTCGGGTGCCAAGG"),
-        )
-        .arg(
-            Arg::with_name("three_p")
-                .long("3p")
-                .takes_value(false)
-                .help("Specify that the UMI is on the 3' end. If analyzing Qiagen libraries \
-                only the Qiagen flag is needed.")
-        )
         .get_matches();
 
     let config = Config::new(matches);
 
     // Set the library type
-    let library_type: &str = 
-        if config.qiagen { 
-            "qiagen" 
-        } else { 
-            "standard"
-        };
+    let library_type: &str = if config.qiagen { "Qiagen" } else { "UMI" };
 
     // Gather all the input parameters
     let reference = &config.alignment_reference;
@@ -730,7 +683,7 @@ pub fn main() -> io::Result<()> {
     }
 
     // Initialize trimmed fastqs vector
-    let trimmed_fastqs: Vec<String>;
+    let mut trimmed_fastqs: Vec<String> = vec![];
 
     // Subsample fastqs if desired
     if config.subsample_to_lowest {
@@ -750,11 +703,7 @@ pub fn main() -> io::Result<()> {
             minimum_length,
             maximum_length,
             &umi_regex,
-            &config.adapter,
-            config.qiagen,
-            config.three_p,
-            config.adapter_mismatch
-        )
+        );
     } else if let Some(n_reads) = config.subsample_fastqs {
         // Subsample to the specified number of reads
         let _ = subsample_fastqs(
@@ -772,11 +721,7 @@ pub fn main() -> io::Result<()> {
             minimum_length,
             maximum_length,
             &umi_regex,
-            &config.adapter,
-            config.qiagen,
-            config.three_p,
-            config.adapter_mismatch
-        )
+        );
     } else {
         // No subsampling
         trimmed_fastqs = trim_adapters(
@@ -785,11 +730,7 @@ pub fn main() -> io::Result<()> {
             minimum_length,
             maximum_length,
             &umi_regex,
-            &config.adapter,
-            config.qiagen,
-            config.three_p,
-            config.adapter_mismatch
-        )
+        );
     }
 
     // Calculate number of RNA in each sample

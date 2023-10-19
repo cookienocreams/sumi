@@ -196,7 +196,7 @@ pub fn create_isomirs(
             }
         }
 
-        // Addition of a base to 5' end with deletions on the 3' end
+        // If the current 5' modification is an addition of a base
         for base in &bases {
             let extended_5_sequence = format!("{}{}", base, trimmed_5p_sequence);
             isomirs.insert(extended_5_sequence.clone());
