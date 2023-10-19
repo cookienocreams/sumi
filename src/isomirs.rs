@@ -66,7 +66,7 @@ pub fn calculate_read_counts<V>(
     umis: HashMap<Vec<u8>, String>,
     seqs_or_mirna_counts: HashMap<String, V>,
     are_isomirs: bool
-) -> Result<HashMap<String, u64>, Box<dyn std::error::Error>> 
+) -> Result<HashMap<String, u64>, Box<dyn Error>> 
 where
     V: Eq + Hash + std::fmt::Display
     {
@@ -127,11 +127,11 @@ where
 
     // Set RNA type for filename
     let rna_type = 
-    if are_isomirs {
-        "isomiR"
-    } else {
-        "miRNA"
-    };
+        if are_isomirs {
+            "isomiR"
+        } else {
+            "miRNA"
+        };
 
     // Create a new CSV file to store the DataFrame
     let file = File::create(format!("{}_{}_counts.csv", sample_name, rna_type))
@@ -187,7 +187,7 @@ pub fn create_isomirs(
         // Extend the 5' truncated sequence by adding bases at its 3' end
         for j in 0..=end_buffer_size {
             if j > 0 {
-                let trimmed_3_sequence = &trimmed_5p_sequence[..trimmed_5p_sequence.len()-j];
+                let trimmed_3_sequence = &trimmed_5p_sequence[..trimmed_5p_sequence.len() - j];
                 isomirs.insert(trimmed_3_sequence.to_string());
             }
             for base in &bases {
@@ -337,6 +337,7 @@ pub fn sequences_with_hamming_distance_of_1(seq: &str) -> Vec<String> {
 /// * `sample_name`: Name of the sample being processed.
 /// * `config`: Configuration settings, including the Levenshtein distance for UMI error correction.
 /// * `mirna_hm`: A `HashMap` where the keys are canonical miRNA sequences and the values are their names.
+/// * `mirna_hm_mismatch`: A `HashMap` where the keys are mismatched miRNA sequences and the values are their names.
 /// * `max_diffs`: Maximum number of differences allowed when generating potential isomiRs.
 ///
 /// # Notes
@@ -386,7 +387,6 @@ pub fn isomir_analysis(
         let potential_isomirs = create_isomirs(mirna_seq.to_string(), max_diffs.min(2), max_diffs);
 
         for isomir in &potential_isomirs {
-
             let mirna_entry = MiRNA {
                 mirna_name: mirna_name.to_string(),
                 canonical_sequence: mirna_seq.to_string(),
@@ -464,8 +464,8 @@ pub fn isomir_analysis(
             isomir_seqs.clone(),
             true
         ) {
-            Ok(rna_names) => rna_names,
-            Err(e) => panic!("{}", e)
+            Ok(rna_counts) => rna_counts,
+            Err(err) => panic!("{}", err)
         };
 
     // Deduplicate mapped mirnas
@@ -477,8 +477,8 @@ pub fn isomir_analysis(
             mirna_counts,
             false
         ) {
-            Ok(rna_names) => rna_names,
-            Err(e) => panic!("{}", e)
+            Ok(rna_counts) => rna_counts,
+            Err(err) => panic!("{}", err)
         };
 
     Ok((dedup_isomir_counts, dedup_mirna_counts))
@@ -600,17 +600,17 @@ pub fn get_isomir_name(
         else {
             for i in 0..=max_diffs {
                 if mirna[i..].starts_with(&isomir[..isomir.len() - i]) {
-                    modifications.insert("5' deletion".to_string(), mirna[0..i].to_string());
+                    modifications.insert("5' deletion".to_string(), mirna[..i].to_string());
                 }
-                if mirna[max_diffs..mirna_len-i].ends_with(&isomir[i..]) {
+                if mirna[max_diffs..mirna_len - i].ends_with(&isomir[i..]) {
                     modifications.insert("3' deletion".to_string(), mirna[mirna_len - i..].to_string());
                 }
                 // Case of 5' addition and 3' deletion
-                if mirna[max_diffs..mirna_len-i].ends_with(&isomir[max_diffs + i..]) {
+                if mirna[max_diffs..mirna_len - i].ends_with(&isomir[max_diffs + i..]) {
                     modifications.insert("3' deletion".to_string(), mirna[mirna_len - i..].to_string());
                 }
                 if isomir[i..].starts_with(&mirna[..isomir.len() - i]) {
-                    modifications.insert("5' addition".to_string(), isomir[0..i].to_string());
+                    modifications.insert("5' addition".to_string(), isomir[..i].to_string());
                 }
             }
         }
@@ -636,9 +636,9 @@ pub fn get_isomir_name(
         else {
             for i in 0..=max_diffs {
                 if isomir[i..].starts_with(&mirna[..mirna.len() - i]) {
-                    modifications.insert("5' addition".to_string(), isomir[0..i].to_string());
+                    modifications.insert("5' addition".to_string(), isomir[..i].to_string());
                 }
-                if isomir[max_diffs..isomir_len-i].ends_with(&mirna[i..]) {
+                if isomir[max_diffs..isomir_len - i].ends_with(&mirna[i..]) {
                     let last_base = mirna.chars().last().unwrap();
                     let extra_bases = &isomir[isomir_len - (isomir_len - mirna_len)..];
                     let template_base: Vec<bool> = extra_bases.chars().map(|base| base == last_base).collect();
@@ -649,7 +649,7 @@ pub fn get_isomir_name(
                     }
                 }
                 if isomir[max_diffs..isomir_len].ends_with(&mirna[..mirna.len() - i]) {
-                    modifications.insert("3' deletion".to_string(), mirna[0..i].to_string());
+                    modifications.insert("3' deletion".to_string(), mirna[..i].to_string());
                 }
             }
         }
@@ -725,10 +725,10 @@ pub fn seed_and_extend(
 
     // Check for a single mutation on the 5' or 3' end of the isomiR
     let end_mutation =
-        ref_seq[0..seed_len] == new_seq[0..seed_len] || ref_seq[ref_seq.len() - seed_len..] == new_seq[new_seq.len() - seed_len..];
+        ref_seq[..seed_len] == new_seq[..seed_len] || ref_seq[ref_seq.len() - seed_len..] == new_seq[new_seq.len() - seed_len..];
 
     // Find end mutation sequence if present
-    if end_mutation && ref_seq[0..seed_len] == new_seq[0..seed_len] {
+    if end_mutation && ref_seq[..seed_len] == new_seq[..seed_len] {
         // Add single 3' mutation (base:seq_len:base, e.g. A22T)
         rear_diff_bases.push(new_seq.chars().last().unwrap());
         rear_diff_bases.push(new_seq.len().to_string().chars().next().unwrap());
@@ -775,13 +775,13 @@ pub fn seed_and_extend(
             if ref_seq[..seed_len].starts_with(&new_seq[1..seed_len]) {
                 modifications.insert("5' addition".to_string(), front_diff_bases[1..=1].to_string());
             } else {
-                modifications.insert("5' deletion".to_string(), front_diff_bases[0..1].to_string());
+                modifications.insert("5' deletion".to_string(), front_diff_bases[..1].to_string());
             }
             
             if ref_seq[ref_seq.len() - seed_len..].ends_with(&new_seq[new_seq.len() - seed_len..new_seq.len() - 1]) {
                 modifications.insert("3' addition".to_string(), rear_diff_bases[1..=1].to_string());
             } else {
-                modifications.insert("3' deletion".to_string(), rear_diff_bases[0..1].to_string());
+                modifications.insert("3' deletion".to_string(), rear_diff_bases[..1].to_string());
             }
         }
     }
