@@ -834,7 +834,7 @@ pub fn main() -> io::Result<()> {
     );
 
     if let true = config.isomirs {
-        let rna_counts_files = capture_target_files(&format!("_isomiR_counts"), false);
+        let rna_counts_files = capture_target_files(&"_isomiR_counts".to_string(), false);
 
         let (full_rna_names_list, rna_info, rpm_info) =
         find_common_rnas(rna_counts_files, sample_names.clone(), 2, 3);

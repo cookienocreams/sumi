@@ -213,10 +213,7 @@ pub fn regex_extraction (
         if is_qiagen && adapter_mismatch {
             umi_trimmed_sequence = record.seq()[..start].to_vec();
             trimmed_quality = record.qual()[..start].to_vec();
-        } else if is_qiagen && !adapter_mismatch {
-                umi_trimmed_sequence = read_sequence[..umi_start].as_bytes().to_vec();
-                trimmed_quality = record.qual()[..umi_start].to_vec();
-        } else if is_3p {
+        } else if is_qiagen && !adapter_mismatch || is_3p {
             umi_trimmed_sequence = read_sequence[..umi_start].as_bytes().to_vec();
             trimmed_quality = record.qual()[..umi_start].to_vec();
         } else {
