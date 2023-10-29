@@ -480,7 +480,7 @@ pub fn rna_discovery_calculation(
 /// ```
 pub fn generate_rna_counts(
     input_sam_file: &str,
-    sample_name: &str,
+    sample_name: &String,
     reference_name: &str,
 ) -> Result<HashMap<String, String>, Box<dyn std::error::Error>> {
     // Initialize a HashMap to count the occurrence of each RNA
@@ -584,7 +584,7 @@ pub fn generate_rna_counts(
 /// println!("The fastq contains {} percent {}.", percent_alignment, reference_name);
 /// ```
 pub fn get_percent_alignment(
-    sample_name: &str,
+    sample_name: &String,
     num_threads: u8,
     reference_name: &str,
     count: u64,

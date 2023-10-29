@@ -123,7 +123,7 @@ pub fn combine_threshold_counts(
 ) -> Result<(), Box<dyn Error>> {
     // Create a HashMap to hold the count data. The outer key is the threshold, and the value is another HashMap
     // where the key is the sample name and the value is the count.
-    let mut data: HashMap<usize, HashMap<&str, usize>> = HashMap::new();
+    let mut data: HashMap<usize, HashMap<&String, usize>> = HashMap::new();
 
     for (input_file, sample_name) in input_files.iter().zip(sample_names.iter()) {
         // Create a CSV reader for the input file

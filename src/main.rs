@@ -618,11 +618,11 @@ pub fn main() -> io::Result<()> {
             .value_name("UMI_REGEX")
             .help("The regular expression pattern to capture each UMI. This pattern should contain capture \
                 groups for the UMI bases and can include any intermediate bases.\n\n\
-                For example, to capture a UMI of 10 bases on the 5' end, use \"(^.{10})\". If \
-                the UMI is split by specific bases, include those bases in the pattern as well. \
-                For example, if a 12-base UMI is split into three groups of 4 bases each by the \
-                bases 'CCA' and 'TCA', use \"(^.{4})CCA(.{4})TCA(.{4})\".\n\n\
-                Note: The double quotes are required. If analyzing Qiagen libraries, \
+                For example, to capture a UMI of 10 bases, use \"(^.{10})\". If the UMI is split by specific \
+                bases, include those bases in the pattern as well. For example, if a 12-base UMI is split \
+                into three groups of 4 bases each by the bases 'CCA' and 'TCA', use \"(^.{4})CCA(.{4})TCA(.{4})\".\n\n\
+                Note: This is currently limited to UMIs on the 5' side of each sequence \
+                , and the double quotes are required. If analyzing Qiagen libraries, \
                 use '--qiagen' flag instead.")
             .takes_value(true)
             .default_value("(^.{12})"),
