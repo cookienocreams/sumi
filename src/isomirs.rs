@@ -62,7 +62,7 @@ pub struct MiRNA {
 /// The function deduplicates UMIs and calculates the count and RPM of each isomiR and miRNA, saving the result in a CSV file.
 pub fn calculate_read_counts<V>(
     representative_umis: HashSet<Vec<u8>>,
-    sample_name: &String,
+    sample_name: &str,
     umis: HashMap<Vec<u8>, String>,
     seqs_or_mirna_counts: HashMap<String, V>,
     are_isomirs: bool
@@ -362,8 +362,8 @@ pub fn sequences_with_hamming_distance_of_1(seq: &str) -> Vec<String> {
 /// }
 /// ```
 pub fn isomir_analysis(
-    fastq_file: &String, 
-    sample_name: &String, 
+    fastq_file: &str, 
+    sample_name: &str, 
     config: &Config, 
     mirna_hm: HashMap<String, String>,
     mirna_hm_mismatch: HashMap<String, String>,

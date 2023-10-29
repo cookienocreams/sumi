@@ -355,7 +355,7 @@ pub fn find_true_isomir_umis(
 /// ```
 pub fn deduplicate_bam(
     input_bam_file: &str,
-    sample_name: &String,
+    sample_name: &str,
     true_umis: HashSet<Vec<u8>>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Open the input BAM file with 4 threads for reading

@@ -44,7 +44,7 @@ pub fn extract_umis(
     sample_name: &str,
     umi_delineator: &str,
     umi_regex: &Regex,
-    adapter: &String,
+    adapter: &str,
     is_qiagen: bool,
     is_3p: bool,
     adapter_mismatch: bool
