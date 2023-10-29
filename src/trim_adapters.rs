@@ -38,7 +38,7 @@ pub fn trim_adapters(
     minimum_length: u8,
     maximum_length: u8,
     umi_regex: &Regex,
-    adapter: &String,
+    adapter: &str,
     is_qiagen: bool,
     is_3p: bool,
     mismatch: bool
