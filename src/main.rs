@@ -691,9 +691,9 @@ pub fn main() -> io::Result<()> {
         calculate_maximum_length(&config.umi_regex, config.maximum_length, config.qiagen);
 
     // Get fastq files
-    let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz", false);
+    let fastq_files: Vec<String> = capture_target_files("R1*.g", false);
     if fastq_files.is_empty() {
-        panic!("No fastq files were found");
+        panic!("No fastq files were found. Expect fastq files to contain 'R1' in name.");
     }
 
     // Check to make sure all input files are gzipped
