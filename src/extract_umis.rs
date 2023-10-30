@@ -198,7 +198,7 @@ pub fn regex_extraction (
             Some(matched) => matched.as_str(),
             None => match SINGLE_INDEX_REGEX.find(record.desc().unwrap_or_default()) {
                 Some(matched) => matched.as_str(),
-                None => panic!("Could not find index"),
+                None => "1:N:0:NNNNNNNN",
             },
         };
 
