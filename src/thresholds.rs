@@ -143,7 +143,7 @@ pub fn combine_threshold_counts(
 
             // Insert the count data into the HashMap
             data.entry(threshold)
-                .or_insert_with(HashMap::new)
+                .or_default()
                 .insert(sample_name, count);
         }
     }

@@ -55,7 +55,7 @@ pub fn build_substring_index(
         for slice in umi.chunks(slice_size) {
             index
                 .entry(slice.to_vec())
-                .or_insert_with(HashSet::new)
+                .or_default()
                 .insert(i);
         }
     }

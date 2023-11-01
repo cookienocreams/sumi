@@ -254,7 +254,7 @@ pub fn rna_discovery_calculation(
 ) -> Result<Vec<String>, std::io::Error> {
     // Calculate the number of reads in each file if metrics are enabled
     let read_counts = if config.write_metrics {
-        let fastq_files: Vec<String> = capture_target_files("_R1_001.fastq.gz", false);
+        let fastq_files: Vec<String> = capture_target_files("R1*.g", false);
         match get_read_counts(fastq_files, &sample_names) {
             Ok(read_counts) => read_counts,
             Err(err) => panic!("An error occurred while getting read counts: {}", err),
@@ -315,16 +315,19 @@ pub fn rna_discovery_calculation(
     }
 
     for (fastq_file, sample_name) in trimmed_fastqs.iter().zip(sample_names.iter()) {
-        // Perform alignment using bowtie2
-        match bowtie2_analysis(
-            fastq_file.to_string(), 
-            sample_name.to_string(), 
-            config,
-            unaligned,
-            reference_name,
-        ) {
-            Ok(_) => (),
-            Err(e) => panic!("Error: {}", e)
+        // Only align with bowtie2 if not analyzing isomiRs or if keeping intermediate files
+        if config.keep_intermediate_files || !config.isomirs {
+            // Perform alignment using bowtie2
+            match bowtie2_analysis(
+                fastq_file.to_string(), 
+                sample_name.to_string(), 
+                config,
+                unaligned,
+                reference_name,
+            ) {
+                Ok(_) => (),
+                Err(err) => panic!("Error: {}", err)
+            }
         }
 
         // Check for isomiRs if desired
@@ -443,7 +446,7 @@ pub fn rna_discovery_calculation(
     let sam_files: Vec<String> = capture_target_files(&format!(".{}.sam", reference_name), false);
 
     // Stop analysis if all samples lack alignment data
-    if sam_files.is_empty() {
+    if sam_files.is_empty() && !config.isomirs {
         panic!("No deduplicated sam files found. Analysis aborted.");
     }
 

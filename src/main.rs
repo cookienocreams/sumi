@@ -805,7 +805,9 @@ pub fn main() -> io::Result<()> {
     let rna_counts_files = capture_target_files(&format!("_{}_counts", reference_name), false);
 
     // Create read length distribution
-    calculate_read_length_distribution(sam_files);
+    if !config.isomirs {
+        calculate_read_length_distribution(sam_files);
+    }
 
     let _ = threshold_count(
         rna_counts_files.clone(),
@@ -833,8 +835,8 @@ pub fn main() -> io::Result<()> {
         reference_name,
     );
 
-    if let true = config.isomirs {
-        let rna_counts_files = capture_target_files(&"_isomiR_counts".to_string(), false);
+    if config.isomirs {
+        let rna_counts_files = capture_target_files("_isomiR_counts", false);
 
         let (full_rna_names_list, rna_info, rpm_info) =
         find_common_rnas(rna_counts_files, sample_names.clone(), 2, 3);

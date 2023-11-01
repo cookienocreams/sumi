@@ -8,9 +8,9 @@ use crate::Series;
 use crate::{HashMap, HashSet};
 use crate::READ_NAME_UMI_REGEX;
 use crate::find_true_isomir_umis;
+use crate::lengths::calculate_isomer_read_length_distribution;
 use polars::prelude::*;
 use bio::io::{fasta, fastq};
-use std::hash::Hash;
 
 // Create struct to hold the details of a canonical miRNA
 pub struct MiRNA {
@@ -35,8 +35,8 @@ pub struct MiRNA {
 /// * `representative_umis`: A `HashSet` containing UMIs deemed to be "true" UMIs.
 /// * `sample_name`: The name of the sample being processed.
 /// * `umis`: A `HashMap` where the keys are UMIs and the values are their corresponding sequences.
-/// * `seqs_or_mirna_counts`: A `HashMap` where the keys are miRNA names and the values are 
-/// their corresponding sequences or read counts.
+/// * `sequences`: A `HashMap` where the keys are RNA names and the values are 
+/// their corresponding sequences.
 /// * `are_isomirs`: Boolean flag to indicate whether isomiRs or miRNA are being analyzed.
 ///
 /// # Example
@@ -60,23 +60,24 @@ pub struct MiRNA {
 /// # Notes
 ///
 /// The function deduplicates UMIs and calculates the count and RPM of each isomiR and miRNA, saving the result in a CSV file.
-pub fn calculate_read_counts<V>(
+pub fn calculate_read_counts(
     representative_umis: HashSet<Vec<u8>>,
     sample_name: &str,
     umis: HashMap<Vec<u8>, String>,
-    seqs_or_mirna_counts: HashMap<String, V>,
-    are_isomirs: bool
-) -> Result<HashMap<String, u64>, Box<dyn Error>> 
-where
-    V: Eq + Hash + std::fmt::Display
-    {
+    sequences: HashMap<String, String>,
+    are_isomirs: bool,
+    reference_name: &str
+) -> Result<HashMap<String, u64>, Box<dyn Error>> {
     // Initialize a HashMap to count the occurrence of each RNA
     let mut dedup_counts: HashMap<String, u64> = HashMap::new();
+    let mut dedup_seqs: Vec<String> = vec![];
 
     // Deduplicate UMIs and count number of isomiRs
     for (umi, rna) in umis {
         if representative_umis.contains(&umi) {
-            *dedup_counts.entry(rna).or_insert(0) += 1;
+            *dedup_counts.entry(rna.clone()).or_insert(0) += 1;
+            let seq = sequences.get(rna.as_str()).unwrap();
+            dedup_seqs.push(seq.to_string())
         }
     }
 
@@ -90,19 +91,11 @@ where
     let mut seqs: Vec<String> = Vec::new();
 
     // For each RNA, calculate its RPM and store its name, count, and RPM
-    if are_isomirs {
-        for (name, count) in &dedup_counts {
-            names.push(name.to_string());
-            counts.push(*count);
-            rpms.push((*count as f64 / total_mapped_reads as f64) * 1_000_000.0); // Calculate RPM
-            seqs.push(seqs_or_mirna_counts.get(name).unwrap().to_string())
-        }
-    } else {
-        for (name, count) in &dedup_counts {
-            names.push(name.to_string());
-            counts.push(*count);
-            rpms.push((*count as f64 / total_mapped_reads as f64) * 1_000_000.0);
-        }
+    for (name, count) in &dedup_counts {
+        names.push(name.to_string());
+        counts.push(*count);
+        rpms.push((*count as f64 / total_mapped_reads as f64) * 1_000_000.0); // Calculate RPM
+        seqs.push(sequences.get(name).unwrap().to_string())
     }
 
     // Create a DataFrame with 'name', 'count', and 'RPM' as columns
@@ -110,7 +103,7 @@ where
     if are_isomirs {
         DataFrame::new(vec![
             Series::new("name", names),
-            Series::new("sequence", seqs), // Add sequence if analyzing isomiRs
+            Series::new("sequence", seqs.clone()), // Add sequence if analyzing isomiRs
             Series::new("count", counts),
             Series::new("RPM", rpms),
         ])?
@@ -130,18 +123,18 @@ where
         if are_isomirs {
             "isomiR"
         } else {
-            "miRNA"
+            reference_name
         };
 
     // Create a new CSV file to store the DataFrame
-    let file = File::create(format!("{}_{}_counts.csv", sample_name, rna_type))
-        .expect("Could not create file");
+    let file = File::create(format!("{}_{}_counts.csv", sample_name, rna_type))?;
 
     // Write the DataFrame to the CSV file with headers
     CsvWriter::new(file)
         .has_header(true)
-        .finish(&mut counts_df)
-        .unwrap();
+        .finish(&mut counts_df)?;
+    
+    let _ = calculate_isomer_read_length_distribution(dedup_seqs, sample_name, are_isomirs);
 
     Ok(dedup_counts)
 }
@@ -375,12 +368,17 @@ pub fn isomir_analysis(
     let mut mirna_counts: HashMap<String, u64> = HashMap::new();
     let mut mirna_umi_counts: HashMap<Vec<u8>, u32> = HashMap::new();
     let mut mirna_umis: HashMap<Vec<u8>, String> = HashMap::new();
+    let mut mirna_seqs: HashMap<String, String> = HashMap::new();
 
     let mut isomir_info: HashMap<String, MiRNA> = HashMap::new();
     let mut isomir_counts: HashMap<String, u64> = HashMap::new();
     let mut isomir_umis: HashMap<Vec<u8>, String> = HashMap::new();
     let mut isomir_umi_counts: HashMap<Vec<u8>, u32> = HashMap::new();
     let mut isomir_seqs: HashMap<String, String> = HashMap::new();
+
+    let reference_name = Path::new(&config.alignment_reference)
+        .file_name().ok_or("err").unwrap()
+        .to_str().ok_or("err").unwrap();
 
     // Create potential isomiRs HashMap to compare against each read sequence
     for (mirna_seq, mirna_name) in &mirna_hm {
@@ -416,6 +414,9 @@ pub fn isomir_analysis(
                 *mirna_umi_counts.entry(umi.as_bytes().to_vec()).or_insert(0) += 1;
                 mirna_umis.insert(umi.as_bytes().to_vec(), mirna_name.to_string());
             }
+
+            // Collect all miRNA sequences
+            mirna_seqs.insert(mirna_name.clone(), read_sequence.to_string());
 
             *mirna_counts.entry(mirna_name.to_string()).or_insert(0) += 1;
         } 
@@ -462,7 +463,8 @@ pub fn isomir_analysis(
             sample_name,
             isomir_umis,
             isomir_seqs.clone(),
-            true
+            true,
+            reference_name
         ) {
             Ok(rna_counts) => rna_counts,
             Err(err) => panic!("{}", err)
@@ -474,8 +476,9 @@ pub fn isomir_analysis(
             representative_mirna_umis,
             sample_name,
             mirna_umis,
-            mirna_counts,
-            false
+            mirna_seqs.clone(),
+            false,
+            reference_name
         ) {
             Ok(rna_counts) => rna_counts,
             Err(err) => panic!("{}", err)
