@@ -5,11 +5,13 @@ use crate::Graph;
 use crate::NodeIndex;
 use crate::READ_NAME_UMI_REGEX;
 use crate::{HashMap, HashSet};
+use crate::{Arc, Mutex};
 use petgraph::visit::Bfs;
 use petgraph::visit::VisitMap;
 use petgraph::visit::Visitable;
 use rust_htslib::bam::{Read, Reader, Record, Writer, Header};
 use rust_htslib::bam::Format::Bam;
+use rayon::prelude::*;
 
 // Type alias for a graph of UMIs (represented as vectors of bytes) and a mapping from
 // NodeIndex to a tuple of UMI and its count.
@@ -107,7 +109,7 @@ pub fn umi_graph(
     max_edits: u32,
     use_levenshtein: bool,
 ) -> UmiGraph {
-    let mut graph: Graph<Vec<u8>, u32> = Graph::<Vec<u8>, u32>::new();
+    let graph = Arc::new(Mutex::new(Graph::<Vec<u8>, u32>::new()));
     let mut node_attributes: HashMap<NodeIndex, (Vec<u8>, u32)> = HashMap::new();
 
     // Collect all unique UMIs from the given UMI-count dictionary
@@ -116,6 +118,7 @@ pub fn umi_graph(
     // Create nodes in the graph for each UMI
     for umi in &umis {
         let count = *umi_count_dict.get(umi).unwrap(); // Get count for the current UMI
+        let mut graph = graph.lock().unwrap();
         let node = graph.add_node(umi.clone()); // Add node to the graph
         node_attributes.insert(node, (umi.clone(), count));
     }
@@ -130,10 +133,10 @@ pub fn umi_graph(
     // Build a substring index from the UMIs
     let substring_index = build_substring_index(&umis, slice_size);
 
-    // Iterate over each UMI to find potential neighbors and add edges
-    for i in 0..umis.len() {
+    // Iterate over each UMI in parallel threads to find potential neighbors and add edges
+    umis.par_iter().enumerate().for_each(|(i, &ref umi)| {
         // Split current UMI into slices
-        let umi_slices: Vec<Vec<u8>> = umis[i]
+        let umi_slices: Vec<Vec<u8>> = umi
             .chunks(slice_size)
             .map(|chunk| chunk.to_vec())
             .collect();
@@ -152,9 +155,9 @@ pub fn umi_graph(
             if i != j {
                 let edit_distance = 
                 if use_levenshtein {
-                    levenshtein(&umis[i], &umis[j])
+                    levenshtein(umi, &umis[j].to_vec())
                 } else {
-                    hamming(&umis[i], &umis[j]) as u32
+                    hamming(umi, &umis[j].to_vec()) as u32
                 };
 
                 // If edit distance is within max edits, consider for edge addition
@@ -166,18 +169,20 @@ pub fn umi_graph(
 
                     // Add edges based on UMI count conditions
                     if *count_i >= 5 * *count_j - 1 {
+                        let mut graph = graph.lock().unwrap();
                         graph.add_edge(node_i, node_j, edit_distance);
                     }
 
                     if *count_j >= 5 * *count_i - 1 {
+                        let mut graph = graph.lock().unwrap();
                         graph.add_edge(node_j, node_i, edit_distance);
                     }
                 }
             }
         }
-    }
+    });
 
-    (graph, node_attributes)
+    (Arc::try_unwrap(graph).unwrap().into_inner().unwrap(), node_attributes)
 }
 
 /// Find representative UMIs from a UMI graph.
@@ -350,7 +355,7 @@ pub fn find_true_isomir_umis(
 /// // handle the error, if any
 /// match result {
 ///     Ok(_) => println!("Deduplication completed successfully"),
-///     Err(e) => eprintln!("An error occurred: {}", e),
+///     Err(err) => eprintln!("An error occurred: {}", err),
 /// }
 /// ```
 pub fn deduplicate_bam(

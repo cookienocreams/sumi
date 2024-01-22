@@ -21,16 +21,6 @@ use polars::prelude::*;
 use std::io;
 use std::io::BufRead;
 
-// Define a custom error type that can represent both io::Error and bio::io::fastq::Error
-// Can be used to determine if an error occurred when reading the input or the fastq file
-#[derive(Error, Debug)]
-pub enum MyError {
-    #[error("I/O error")]
-    Io(#[from] io::Error),
-    #[error("FASTQ error")]
-    Fastq(#[from] bio::io::fastq::Error),
-}
-
 /// Check a SAM file to determine if it contains alignment data.
 ///
 /// The function reads through the SAM file line by line, looking for any line that does

@@ -43,6 +43,7 @@ use std::path::Path;
 use std::process::Command;
 use std::str;
 use thiserror::Error;
+use std::sync::{Arc, Mutex};
 
 lazy_static! {
     /// Define the regex to extract index information and UMI and index information

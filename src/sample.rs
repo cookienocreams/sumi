@@ -8,6 +8,8 @@ use crate::ProgressBar;
 use crate::ProgressStyle;
 use rand::{Rng, SeedableRng};
 use std::io::{BufRead, Write};
+use bio::io::fastq;
+use bio::io::fastq::Record;
 
 /// Count the number of reads in a FASTQ file.
 ///
@@ -119,8 +121,8 @@ pub fn find_fastq_with_fewest_reads(
 ///
 /// # Returns
 ///
-/// This function returns a Result containing a vector of vectors of Strings. Each vector
-/// of Strings represents a selected read from the input file and its corresponding line
+/// This function returns a Result containing a vector of Records. Each Record
+/// represents a selected read from the input file and its corresponding lines
 /// in the FASTQ file.
 ///
 /// # Errors
@@ -130,7 +132,7 @@ pub fn subsample_file(
     input_file: &str,
     target_read_count: u32,
     rng_seed: Option<u64>,
-) -> Result<Vec<Vec<String>>, Box<dyn std::error::Error>> {
+) -> Result<Vec<Record>, Box<dyn std::error::Error>> {
     // Create a random number generator
     let mut rng = match rng_seed {
         Some(rng) => rand_chacha::ChaCha8Rng::seed_from_u64(rng),
@@ -142,35 +144,27 @@ pub fn subsample_file(
     let (mut reader, _compression) = get_reader(Box::new(reader))?;
     let reader = BufReader::new(&mut reader);
 
+    // Create a FASTQ reader from the BufReader
+    let mut fastq_reader = fastq::Reader::from_bufread(reader).records();
+
     // Initialize reservoir and total reads count
-    let mut reservoir: Vec<Vec<String>> = Vec::with_capacity(target_read_count.try_into().unwrap());
+    let mut reservoir: Vec<Record> = Vec::with_capacity(target_read_count.try_into().unwrap());
     let mut n = 0;
 
-    // Create an iterator over the lines in the file
-    let mut read_lines = reader.lines();
-
     // While there are still lines in the file...
-    loop {
-        // Read one read
-        let read: Vec<String> = read_lines.by_ref().take(4).filter_map(Result::ok).collect();
-
-        // If less than 4 lines were read, break the loop
-        if read.len() < 4 {
-            break;
-        }
-
+    while let Some(Ok(record)) = fastq_reader.next() {
         n += 1; // Increment the total read count
 
         if n <= target_read_count {
             // If we have not yet reached the target number of reads, just store the read in the reservoir
-            reservoir.push(read);
+            reservoir.push(record);
         } else {
             // Generate a random number between 0 and the total read count (inclusive)
             let r: usize = rng.gen_range(0..=n).try_into().unwrap();
 
             // If the random number is less than the target read count, replace a read in the reservoir
             if r < target_read_count.try_into().unwrap() {
-                reservoir[r] = read;
+                reservoir[r] = record;
             }
         }
     }
@@ -183,13 +177,12 @@ pub fn subsample_file(
 /// # Arguments
 ///
 /// * `output_file` - A string reference that holds the name of the output FASTQ file.
-/// * `reservoir` - A vector of vectors of Strings. Each vector of Strings represents a
-/// selected read and its corresponding line in the FASTQ file.
+/// * `reservoir` - A vector of Records. Each Record represents a selected read and its 
+/// corresponding lines in the FASTQ file.
 ///
 /// # Description
 ///
 /// This function writes the reads selected by the `subsample_file` function to an output FASTQ file.
-/// Each read is written as a block of four lines, corresponding to the standard FASTQ format.
 ///
 /// # Returns
 ///
@@ -201,16 +194,14 @@ pub fn subsample_file(
 /// This function will return an error if there is a problem writing to the output file.
 pub fn write_to_output(
     output_file: &str,
-    reservoir: Vec<Vec<String>>,
+    reservoir: Vec<Record>,
 ) -> Result<(), Box<dyn std::error::Error>> {
     // Write the selected reads to the output FASTQ file
     let file = File::create(output_file)?;
     let mut writer = BufWriter::new(file);
 
     for read in &reservoir {
-        for line in read {
-            writeln!(writer, "{}", line)?;
-        }
+        write!(writer, "{}", read)?;
     }
 
     Ok(())
