@@ -1,3 +1,4 @@
+use crate::create_progress_bar;
 use crate::csv_reader;
 use crate::csv_writer;
 use crate::fs::OpenOptions;
@@ -6,8 +7,6 @@ use crate::Error;
 use crate::File;
 use crate::HashMap;
 use crate::Path;
-use crate::ProgressBar;
-use crate::ProgressStyle;
 use std::io::Write;
 
 /// Process a list of CSV files containing RNA counts and create output CSV files
@@ -49,19 +48,14 @@ pub fn threshold_count(
     reference: &str,
 ) -> Result<(), Box<dyn Error>> {
     let num_of_files = file_names.len() as u64;
-    let progress_br = ProgressBar::new(num_of_files);
+    let reference_name = Path::new(reference).file_name().unwrap().to_str().expect("Failed to get reference name");
 
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    let reference_name = Path::new(reference).file_name().unwrap().to_str().unwrap();
-    progress_br.set_message(format!(
+    let progress_br = create_progress_bar(
+        num_of_files, 
+        format!(
         "Calculating {} threshold counts...",
         reference_name
-    ));
+    ).to_string());
 
     // Loop over all files
     for (file_name, sample_name) in file_names.iter().zip(sample_names.iter()) {
@@ -123,14 +117,14 @@ pub fn combine_threshold_counts(
 ) -> Result<(), Box<dyn Error>> {
     // Create a HashMap to hold the count data. The outer key is the threshold, and the value is another HashMap
     // where the key is the sample name and the value is the count.
-    let mut data: HashMap<usize, HashMap<&String, usize>> = HashMap::new();
+    let mut count_data: HashMap<usize, HashMap<&String, usize>> = HashMap::new();
 
     for (input_file, sample_name) in input_files.iter().zip(sample_names.iter()) {
         // Create a CSV reader for the input file
         let reader = csv_reader::from_reader(BufReader::new(File::open(input_file)?));
+        let mut reader = reader.into_records();
 
-        for result in reader.into_records() {
-            let record = result?;
+        while let Some(Ok(record)) = reader.next() {
             let parts: Vec<&str> = record[0].split_whitespace().collect();
             if parts.len() < 2 {
                 return Err(From::from(format!(
@@ -142,7 +136,7 @@ pub fn combine_threshold_counts(
             let count: usize = record[1].parse()?;
 
             // Insert the count data into the HashMap
-            data.entry(threshold)
+            count_data.entry(threshold)
                 .or_default()
                 .insert(sample_name, count);
         }
@@ -160,7 +154,7 @@ pub fn combine_threshold_counts(
     writer.write_record(&header)?;
 
     // Get a sorted list of all unique thresholds
-    let mut thresholds: Vec<usize> = data.keys().cloned().collect();
+    let mut thresholds: Vec<usize> = count_data.keys().cloned().collect();
     thresholds.sort_unstable();
 
     // Write each threshold and its count data to the output CSV file
@@ -169,9 +163,9 @@ pub fn combine_threshold_counts(
 
         // For each sample, look up the count for the current threshold and add it to the row
         for sample_name in &sample_names {
-            let count = data
+            let count = count_data
                 .get(&threshold)
-                .and_then(|x| x.get(sample_name))
+                .and_then(|count_hm| count_hm.get(sample_name))
                 .unwrap_or(&0);
             row.push(count.to_string());
         }

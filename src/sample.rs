@@ -1,11 +1,10 @@
 use crate::get_reader;
+use crate::create_progress_bar;
 use crate::BufReader;
 use crate::BufWriter;
 use crate::File;
 use crate::HashMap;
 use crate::Path;
-use crate::ProgressBar;
-use crate::ProgressStyle;
 use rand::{Rng, SeedableRng};
 use std::io::{BufRead, Write};
 use bio::io::fastq;
@@ -65,25 +64,17 @@ pub fn find_fastq_with_fewest_reads(
     read_counts: &mut HashMap<String, usize>,
 ) -> Result<(String, u64), Box<dyn std::error::Error>> {
     let num_of_fastqs = input_fastqs.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
+    let progress_br = create_progress_bar(num_of_fastqs, "Counting the reads in each fastq files...".to_string());
 
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    progress_br.set_message("Counting the reads in each fastq files...");
-
-    let mut min_reads: u64 = u64::MAX;
+    let mut min_reads = u64::MAX;
     let mut min_index = 0;
 
     for (index, file) in input_fastqs.iter().enumerate() {
-        // Check if the count is already stored in the HashMap
+        // Check if the count is already stored in the Hashmap
         let count = match read_counts.get(file) {
             Some(count) => *count,
             None => {
-                // If not, calculate it and store it in the HashMap
+                // If not, calculate it and store it in the Hashmap
                 let count = count_reads(file)?.try_into().unwrap();
                 read_counts.insert(file.to_string(), count);
                 count
@@ -136,7 +127,7 @@ pub fn subsample_file(
     // Create a random number generator
     let mut rng = match rng_seed {
         Some(rng) => rand_chacha::ChaCha8Rng::seed_from_u64(rng),
-        None => rand_chacha::ChaCha8Rng::from_rng(rand::thread_rng()).unwrap(),
+        None => rand_chacha::ChaCha8Rng::from_rng(rand::thread_rng())?,
     };
 
     // Open the file and get a reader that can handle potential compression
@@ -148,23 +139,23 @@ pub fn subsample_file(
     let mut fastq_reader = fastq::Reader::from_bufread(reader).records();
 
     // Initialize reservoir and total reads count
-    let mut reservoir: Vec<Record> = Vec::with_capacity(target_read_count.try_into().unwrap());
-    let mut n = 0;
+    let mut reservoir: Vec<Record> = Vec::with_capacity(target_read_count.try_into()?);
+    let mut reads_counted = 0;
 
     // While there are still lines in the file...
     while let Some(Ok(record)) = fastq_reader.next() {
-        n += 1; // Increment the total read count
+        reads_counted += 1; // Increment the total read count
 
-        if n <= target_read_count {
+        if reads_counted <= target_read_count {
             // If we have not yet reached the target number of reads, just store the read in the reservoir
             reservoir.push(record);
         } else {
             // Generate a random number between 0 and the total read count (inclusive)
-            let r: usize = rng.gen_range(0..=n).try_into().unwrap();
+            let random_num: usize = rng.gen_range(0..=reads_counted).try_into()?;
 
             // If the random number is less than the target read count, replace a read in the reservoir
-            if r < target_read_count.try_into().unwrap() {
-                reservoir[r] = record;
+            if random_num < target_read_count.try_into()? {
+                reservoir[random_num] = record;
             }
         }
     }
@@ -257,7 +248,7 @@ pub fn subsample_fastqs(
 
     // Determine the target read count
     let (smallest_fastq_file, target_read_count) = match target_read_count {
-        Some(n) => (String::new(), n), // If a target_read_count is provided, set smallest_fastq_file to an empty string
+        Some(count) => (String::new(), count), // If a target_read_count is provided, set smallest_fastq_file to an empty string
         None => {
             let (file, count) = find_fastq_with_fewest_reads(&input_fastqs, &mut read_counts)?;
             (file, count.try_into()?) // If not, find the file with the smallest read count
@@ -283,20 +274,12 @@ pub fn subsample_fastqs(
             "{}_subsample.{}",
             smallest_fastq_file_stem, smallest_fastq_file_extension
         );
-        std::fs::copy(&smallest_fastq_file, &smallest_fastq_file_copy)?;
+        std::fs::copy(&smallest_fastq_file, smallest_fastq_file_copy)?;
     }
 
     // Create a progress bar
     let num_of_fastqs = input_fastqs.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
-
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    progress_br.set_message("Subsampling fastq files...");
+    let progress_br = create_progress_bar(num_of_fastqs, "Subsampling fastq files...".to_string());
 
     // Subsample fastq files
     for (fastq, sample_name) in input_fastqs.iter().zip(sample_names.iter()) {

@@ -81,9 +81,8 @@ pub fn average_read_quality(input_fastq: &str) -> Result<f32, Box<dyn std::error
 
     let mut q_score_list = Vec::new();
 
-    let fastq_records = Reader::new(reader).records();
-    for record_result in fastq_records {
-        let record = record_result?;
+    let mut fastq_records = Reader::new(reader).records();
+    while let Some(Ok(record)) = fastq_records.next() {
         let seq_len = record.seq().len() as f32;
         let prob_q_score = get_q_score_probability(record.qual()) / seq_len;
         let q_score = -10.0 * prob_q_score.log10();

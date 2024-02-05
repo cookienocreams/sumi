@@ -1,14 +1,12 @@
 use crate::hamming;
-use crate::io;
 use crate::levenshtein;
+use crate::io;
 use crate::Graph;
 use crate::NodeIndex;
 use crate::READ_NAME_UMI_REGEX;
 use crate::{HashMap, HashSet};
 use crate::{Arc, Mutex};
-use petgraph::visit::Bfs;
-use petgraph::visit::VisitMap;
-use petgraph::visit::Visitable;
+use crate::{Bfs, VisitMap, Visitable};
 use rust_htslib::bam::{Read, Reader, Record, Writer, Header};
 use rust_htslib::bam::Format::Bam;
 use rayon::prelude::*;
@@ -117,10 +115,11 @@ pub fn umi_graph(
 
     // Create nodes in the graph for each UMI
     for umi in &umis {
-        let count = *umi_count_dict.get(umi).unwrap(); // Get count for the current UMI
-        let mut graph = graph.lock().unwrap();
-        let node = graph.add_node(umi.clone()); // Add node to the graph
-        node_attributes.insert(node, (umi.clone(), count));
+        if let Some(count) = umi_count_dict.get(umi) {
+            let mut graph = graph.lock().expect("Failed thread lock");
+            let node = graph.add_node(umi.clone()); // Add node to the graph
+            node_attributes.insert(node, (umi.clone(), *count));
+        }
     }
 
     // Slice size for substring index is calculated based on UMI length and max edits allowed
@@ -134,7 +133,7 @@ pub fn umi_graph(
     let substring_index = build_substring_index(&umis, slice_size);
 
     // Iterate over each UMI in parallel threads to find potential neighbors and add edges
-    umis.par_iter().enumerate().for_each(|(i, &ref umi)| {
+    umis.par_iter().enumerate().for_each(|(i, umi)| {
         // Split current UMI into slices
         let umi_slices: Vec<Vec<u8>> = umi
             .chunks(slice_size)
@@ -164,17 +163,17 @@ pub fn umi_graph(
                 if edit_distance <= max_edits {
                     let node_i: NodeIndex = NodeIndex::new(i);
                     let node_j: NodeIndex = NodeIndex::new(j);
-                    let (_, count_i) = node_attributes.get(&node_i).unwrap();
-                    let (_, count_j) = node_attributes.get(&node_j).unwrap();
+                    let (_, count_i) = node_attributes.get(&node_i).expect("Failed to get node attribute");
+                    let (_, count_j) = node_attributes.get(&node_j).expect("Failed to get node attribute");
 
                     // Add edges based on UMI count conditions
                     if *count_i >= 5 * *count_j - 1 {
-                        let mut graph = graph.lock().unwrap();
+                        let mut graph = graph.lock().expect("Failed thread lock");
                         graph.add_edge(node_i, node_j, edit_distance);
                     }
 
                     if *count_j >= 5 * *count_i - 1 {
-                        let mut graph = graph.lock().unwrap();
+                        let mut graph = graph.lock().expect("Failed thread lock");
                         graph.add_edge(node_j, node_i, edit_distance);
                     }
                 }
@@ -284,7 +283,7 @@ pub fn find_true_umis(
 ) -> Result<HashSet<Vec<u8>>, io::Error> {
     let mut umi_counts: HashMap<Vec<u8>, u32> = HashMap::new();
 
-    let mut bam = Reader::from_path(input_bam_file).unwrap();
+    let mut bam = Reader::from_path(input_bam_file).expect("Failed to read BAM file");
     let mut record = Record::new();
     while let Some(reader) = bam.read(&mut record) {
         reader.expect("Failed to parse record");
@@ -377,7 +376,12 @@ pub fn deduplicate_bam(
     let mut umis_and_positions_added: HashMap<(Vec<u8>, i64), bool> = HashMap::new();
 
     // Go through each read in the BAM file
-    for result in bam_reader.rc_records() {
+    for result in bam_reader.rc_records().skip_while(|result| {
+        let record = result.as_ref().unwrap();
+        let qname = std::str::from_utf8(record.qname()).unwrap();
+        let umi: Vec<u8> = qname.split('_').last().unwrap().bytes().collect();
+        true_umis.contains(&umi)
+    }) {
         let record = result?;
 
         // Extract the UMI from the read's name by splitting the name by underscores and taking the last element
@@ -386,9 +390,7 @@ pub fn deduplicate_bam(
 
         // If the UMI exists and the combination of the UMI and the read's mapping position hasn't been observed before,
         // write the read to the output file and record the UMI-mapping position combination
-        if true_umis.contains(&umi)
-            && !umis_and_positions_added.contains_key(&(umi.clone(), record.pos()))
-        {
+        if true_umis.contains(&umi) && !umis_and_positions_added.contains_key(&(umi.clone(), record.pos())) {
             // Write the read to the output BAM file
             bam_writer.write(&record)?;
 

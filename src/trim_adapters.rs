@@ -1,27 +1,29 @@
 use crate::extract_umis;
+use crate::create_progress_bar;
 use crate::Command;
 use crate::HashMap;
 use crate::Path;
-use crate::ProgressBar;
-use crate::ProgressStyle;
 use crate::Regex;
 
 /// Trim the 3' adapter from each read.
 ///
 /// The bases on the 3' end are also quality trimmed if their quality score is below 20. Reads
-/// shorter than 16 bases or that weren't trimmed are discarded. UMIs are extracted from each
-///  sequence and appended to the read name.
+/// shorter than set minimum or that weren't trimmed are discarded. UMIs are extracted from each
+/// sequence and appended to the read name.
 ///
 /// # Example
 /// ```
-/// let fastqs = vec!["sample1.fastq.gz","sample2.fastq.gz","sample3.fastq.gz"];
+/// use regex::Regex;
+/// 
+/// let fastqs = vec!["sample1_R1.fastq.gz","sample2_R1.fastq.gz","sample3_R1.fastq.gz"];
 /// let mut library_type = HashMap::new();
-/// library_type.insert("sample1", "UMI");
-/// library_type.insert("sample2", "UMI");
-/// library_type.insert("sample3", "UMI");
-/// let minimum_length = 28;
+/// library_type.insert("sample1", "standard");
+/// library_type.insert("sample2", "standard");
+/// library_type.insert("sample3", "standard");
 ///
-/// let trimmed = trim_adapters(fastqs, library_type, minimum_length);
+/// let umi_regex = Regex::new(r"(^.{12})").unwrap();
+///
+/// let trimmed = trim_adapters(fastqs, library_type, 16, 30, umi_regex, &"ATCG".to_string(), false, true, false);
 /// // trimmed is ["sample1.cut.fastq", "sample2.cut.fastq", "sample3.cut.fastq"]
 /// ```
 ///
@@ -29,6 +31,12 @@ use crate::Regex;
 /// * `fastqs` - A vector of strings containing the file names of the FASTQ files.
 /// * `library_type` - A HashMap associating each sample name to the corresponding library type.
 /// * `minimum_length` - The minimum sequence length required for a read to be kept.
+/// * `maximum_length` - The maximum sequence length acceptable for a read to be kept.
+/// * `umi_regex` - A regular expression used to match Unique Molecular Identifiers (UMIs) in the reads.
+/// * `adapter` - The 3' adapter sequence.
+/// * `is_qiagen` - A Boolean indicating whether the analysis is using Qiagen data.
+/// * `is_3p` - A Boolean indicating whether the UMI is on the 3' end of each read.
+/// * `mismatch` - A Boolean indicating if 1 bp mismatches in the adapter sequence are allowed.
 ///
 /// # Returns
 /// * A vector of strings containing the names of the FASTQ files after trimming.
@@ -44,15 +52,7 @@ pub fn trim_adapters(
     mismatch: bool
 ) -> Vec<String> {
     let num_of_fastqs = fastqs.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
-
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    progress_br.set_message("Trimming fastq files...");
+    let progress_br = create_progress_bar(num_of_fastqs, "Trimming fastq files...".to_string());
 
     let mut trimmed_fastq_files: Vec<String> = vec![];
     for fastq_file in fastqs.iter() {
@@ -63,18 +63,18 @@ pub fn trim_adapters(
         let max_length_string = maximum_length.to_string();
         let too_short_output = format!("{}.short.fastq", sample_name);
 
-        // Set cutadapt args to remove untrimmed reads and require a quality score > 25
+        // Set cutadapt args to remove untrimmed reads and trim bases with a quality score < 25
         let mut cutadapt_args: Vec<&str> = vec![
             "--cores=0",
             "--discard-untrimmed",
             "--quality-cutoff",
-            "25,25",
+            "20",
             "--adapter",
         ];
 
         // Determine order of UMI extraction and adapter trimming
-        let umi_loc = library_type.get(&sample_name.to_string()).unwrap().as_str();
-        match umi_loc {
+        let umi_type = library_type.get(&sample_name.to_string()).unwrap().as_str();
+        match umi_type {
             "standard" => { // Standard meaning the UMI is located between the adapters
                 let output_file_name = format!("{}.unprocessed.cut.fastq", sample_name);
                 cutadapt_args.extend([

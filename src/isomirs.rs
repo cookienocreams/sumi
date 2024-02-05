@@ -18,6 +18,9 @@ pub struct MiRNA {
     canonical_sequence: String,
 }
 
+pub type DedupCounts = Result<(HashMap<String, u64>, HashMap<String, u64>) , Box<dyn Error>>;
+pub type RNAHashmaps = Result<(HashMap<String, String>, HashMap<String, String>) , Box<dyn Error>>;
+
 /// Count the occurrence of each isomiR and miRNA based on representative UMIs, and write the 
 /// information to an output CSV file. The CSV file contains the name of each unique RNA, 
 /// its count, and its reads per million (RPM) for the given sample.
@@ -53,7 +56,7 @@ pub struct MiRNA {
 /// let isomir_counts = calculate_read_counts(representative_umis, &"sample1".to_string(), isomir_umis, mirna_counts, true);
 /// match isomir_counts {
 ///     Ok(counts) => println!("Successfully generated counts for sample1: {:?}", counts),
-///     Err(e) => eprintln!("Error occurred: {}", e),
+///     Err(err) => eprintln!("Error occurred: {}", err),
 /// }
 /// ```
 ///
@@ -100,23 +103,26 @@ pub fn calculate_read_counts(
 
     // Create a DataFrame with 'name', 'count', and 'RPM' as columns
     let mut counts_df = 
-    if are_isomirs {
-        DataFrame::new(vec![
-            Series::new("name", names),
-            Series::new("sequence", seqs.clone()), // Add sequence if analyzing isomiRs
-            Series::new("count", counts),
-            Series::new("RPM", rpms),
-        ])?
-    } else {
-        DataFrame::new(vec![
-            Series::new("name", names),
-            Series::new("count", counts),
-            Series::new("RPM", rpms),
-        ])?
-    };
+        if are_isomirs {
+            DataFrame::new(vec![
+                Series::new("name", names),
+                Series::new("sequence", seqs.clone()), // Add sequence if analyzing isomiRs
+                Series::new("count", counts),
+                Series::new("RPM", rpms),
+            ])?
+        } else {
+            DataFrame::new(vec![
+                Series::new("name", names),
+                Series::new("count", counts),
+                Series::new("RPM", rpms),
+            ])?
+        };
 
     // Sort the DataFrame in-place by the 'count' column
-    let _ = counts_df.sort_in_place(["count"], true, true);
+    match counts_df.sort_in_place(["count"], true, true) {
+        Ok(_) => (),
+        Err(err) => eprintln!("Error sorting dataframe: {}", err)
+    };
 
     // Set RNA type for filename
     let rna_type = 
@@ -134,7 +140,10 @@ pub fn calculate_read_counts(
         .has_header(true)
         .finish(&mut counts_df)?;
     
-    let _ = calculate_isomer_read_length_distribution(dedup_seqs, sample_name, are_isomirs);
+    match calculate_isomer_read_length_distribution(dedup_seqs, sample_name, are_isomirs) {
+        Ok(_) => (),
+        Err(err) => eprintln!("Error calculating read length distribution: {}", err)
+    };
 
     Ok(dedup_counts)
 }
@@ -241,13 +250,13 @@ pub fn create_isomirs(
 /// let rna_hashmap = create_rna_hashmap_from_fasta(&fasta_file);
 /// match rna_hashmap {
 ///     Ok(hm) => println!("Successfully created RNA hashmap: {:?}", hm),
-///     Err(e) => eprintln!("Error occurred: {}", e),
+///     Err(err) => eprintln!("Error occurred: {}", err),
 /// }
 /// ```
 pub fn create_rna_hashmap_from_fasta(
     fasta: &str, 
     config: &Config
-) -> Result<(HashMap<String, String>, HashMap<String, String>) , Box<dyn Error>> {
+) -> RNAHashmaps {
     // Open the RNA fasta file
     let mut rna_file = fasta::Reader::from_file(Path::new(fasta))?.records();
     let mut mirna_hm: HashMap<String, String> = HashMap::new();
@@ -262,7 +271,7 @@ pub fn create_rna_hashmap_from_fasta(
         mirna_hm_mismatch.insert(read_sequence.to_string(), ref_name.to_string());
 
         // Add 1 bp mismatched sequences if desired
-        if let true = config.mismatch {
+        if config.mismatch {
             let sequences = sequences_with_hamming_distance_of_1(read_sequence);
             for seq in sequences.iter() {
                 mirna_hm_mismatch.insert(seq.to_string(), ref_name.to_string());
@@ -343,7 +352,7 @@ pub fn sequences_with_hamming_distance_of_1(seq: &str) -> Vec<String> {
 /// ```rust
 /// let fastq_file = "sample1.fastq";
 /// let config = Config {
-///     levenshtein_distance: 2,
+///     levenshtein_distance: 1,
 ///     // ... other fields ...
 /// };
 /// let mirna_hm = get_canonical_mirnas();  // Function to get canonical miRNAs
@@ -351,7 +360,7 @@ pub fn sequences_with_hamming_distance_of_1(seq: &str) -> Vec<String> {
 /// let deduplicated_counts = isomir_analysis(&fastq_file, &"sample1".to_string(), &config, mirna_hm, 2);
 /// match deduplicated_counts {
 ///     Ok(counts) => println!("Successfully generated deduplicated counts for sample1: {:?}", counts),
-///     Err(e) => eprintln!("Error occurred: {}", e),
+///     Err(err) => eprintln!("Error occurred: {}", err),
 /// }
 /// ```
 pub fn isomir_analysis(
@@ -360,8 +369,9 @@ pub fn isomir_analysis(
     config: &Config, 
     mirna_hm: HashMap<String, String>,
     mirna_hm_mismatch: HashMap<String, String>,
-    max_diffs: usize
-) -> Result<(HashMap<String, u64>, HashMap<String, u64>) , Box<dyn Error>> {
+) -> DedupCounts {
+    let max_diffs = config.max_isomir_diff;
+
     // Open the RNA fastq file
     let mut file = fastq::Reader::from_file(Path::new(fastq_file))?.records();
 
@@ -377,8 +387,9 @@ pub fn isomir_analysis(
     let mut isomir_seqs: HashMap<String, String> = HashMap::new();
 
     let reference_name = Path::new(&config.alignment_reference)
-        .file_name().ok_or("err").unwrap()
-        .to_str().ok_or("err").unwrap();
+        .file_name()
+        .unwrap()
+        .to_string_lossy();
 
     // Create potential isomiRs HashMap to compare against each read sequence
     for (mirna_seq, mirna_name) in &mirna_hm {
@@ -464,10 +475,10 @@ pub fn isomir_analysis(
             isomir_umis,
             isomir_seqs.clone(),
             true,
-            reference_name
+            &reference_name
         ) {
             Ok(rna_counts) => rna_counts,
-            Err(err) => panic!("{}", err)
+            Err(err) => panic!("Error calculating read counts: {}", err)
         };
 
     // Deduplicate mapped mirnas
@@ -478,10 +489,10 @@ pub fn isomir_analysis(
             mirna_umis,
             mirna_seqs.clone(),
             false,
-            reference_name
+            &reference_name
         ) {
             Ok(rna_counts) => rna_counts,
-            Err(err) => panic!("{}", err)
+            Err(err) => panic!("Error calculating read counts: {}", err)
         };
 
     Ok((dedup_isomir_counts, dedup_mirna_counts))
@@ -657,9 +668,7 @@ pub fn get_isomir_name(
             }
         }
     } // When isomir and mirna are the same length
-    else if isomir_len == mirna_len {
-        seed_and_extend(&mirna, &isomir, 12, &mut modifications)
-    }
+    else if isomir_len == mirna_len && seed_and_extend(&mirna, &isomir, 12, &mut modifications).is_some() {}
 
     construct_isomir_name(&mirna_name, &modifications).expect("Failed to get isomiR name.")
 }
@@ -714,7 +723,7 @@ pub fn seed_and_extend(
     new_seq: &str, 
     seed_len: usize, 
     modifications: &mut HashMap<String, String>
-) {
+) -> Option<()> {
     // Set initial seed sequence for modifications search
     let ref_seed = get_initial_seed(ref_seq, seed_len);
 
@@ -733,15 +742,15 @@ pub fn seed_and_extend(
     // Find end mutation sequence if present
     if end_mutation && ref_seq[..seed_len] == new_seq[..seed_len] {
         // Add single 3' mutation (base:seq_len:base, e.g. A22T)
-        rear_diff_bases.push(new_seq.chars().last().unwrap());
-        rear_diff_bases.push(new_seq.len().to_string().chars().next().unwrap());
-        rear_diff_bases.push(new_seq.len().to_string().chars().nth(1).unwrap());
-        rear_diff_bases.push(ref_seq.chars().last().unwrap());
+        rear_diff_bases.push(new_seq.chars().last()?);
+        rear_diff_bases.push(new_seq.len().to_string().chars().next()?);
+        rear_diff_bases.push(new_seq.len().to_string().chars().nth(1)?);
+        rear_diff_bases.push(ref_seq.chars().last()?);
         modifications.insert("3' mutation".to_string(), rear_diff_bases.to_string());
     } else if ref_seq[ref_seq.len() - seed_len..] == new_seq[new_seq.len() - seed_len..] {
         // Add single 5' mutation (ref_base:mut_base, e.g. AT)
-        front_diff_bases.push(new_seq.chars().next().unwrap());
-        front_diff_bases.push(ref_seq.chars().next().unwrap());
+        front_diff_bases.push(new_seq.chars().next()?);
+        front_diff_bases.push(ref_seq.chars().next()?);
         modifications.insert("5' mutation".to_string(), front_diff_bases.to_string());
     }
 
@@ -749,7 +758,7 @@ pub fn seed_and_extend(
         if let Some(seed_pos_in_new_seq) = new_seq.find(ref_seed) {
             for i in 1..seed_pos_in_new_seq + 1 {
                 // Extend towards the 5' end
-                let next_seed_base = new_seq.chars().nth(seed_pos_in_new_seq - i).unwrap();
+                let next_seed_base = new_seq.chars().nth(seed_pos_in_new_seq - i)?;
                 seed.insert_str(0, &String::from(next_seed_base));
                 
                 // Continue to search backwards and keep track of 5' bases
@@ -764,7 +773,7 @@ pub fn seed_and_extend(
     
             for i in 0..(ref_seq.len() - seed_pos_in_new_seq - seed_len) {
                 // Extend towards the 3' end
-                let next_seed_base = new_seq.chars().nth(seed_pos_in_new_seq + seed_len + i).unwrap();
+                let next_seed_base = new_seq.chars().nth(seed_pos_in_new_seq + seed_len + i)?;
                 seed.insert_str(seed.len(), &String::from(next_seed_base));
                 
                 // Continue to search forwards and keep track of 3' bases
@@ -789,4 +798,5 @@ pub fn seed_and_extend(
         }
     }
     
+    Some(())
 }

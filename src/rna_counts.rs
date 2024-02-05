@@ -1,20 +1,19 @@
 use crate::capture_target_files;
-use crate::csv_writer;
 use crate::get_read_counts;
+use crate::create_progress_bar;
 use crate::graph::deduplicate_bam;
 use crate::graph::find_true_umis;
 use crate::quality::average_read_quality;
+use crate::csv_writer;
 use crate::BufReader;
 use crate::Command;
 use crate::Config;
 use crate::CsvWriter;
 use crate::DataFrame;
-use crate::Error;
 use crate::File;
 use crate::Path;
 use crate::Series;
 use crate::{HashMap, HashSet};
-use crate::{ProgressBar, ProgressStyle};
 use crate::isomirs::isomir_analysis;
 use crate::isomirs::create_rna_hashmap_from_fasta;
 use polars::prelude::*;
@@ -47,7 +46,7 @@ use std::io::BufRead;
 /// let result = is_sam_file_empty("/path/to/your/file.sam");
 /// match result {
 ///     Ok(_) => println!("The SAM file contains alignments."),
-///     Err(e) => eprintln!("An error occurred: {}", e),
+///     Err(err) => eprintln!("An error occurred: {}", err),
 /// }
 /// ```
 pub fn is_sam_file_empty(sam_file: &str) -> Result<(), io::Error> {
@@ -66,6 +65,7 @@ pub fn is_sam_file_empty(sam_file: &str) -> Result<(), io::Error> {
         "SAM file is empty",
     ))
 }
+
 /// Align sequences from a trimmed FASTQ file to a `bowtie2` reference and deduplicates the resulting alignments.
 ///
 /// This function aligns reads from a given FASTQ file to a `bowtie2` reference and produces a SAM file. 
@@ -121,15 +121,15 @@ pub fn bowtie2_analysis(
 
     // Set bowtie2 flag to keep unaligned reads
     let mismatch = 
-    if config.mismatch {
-        ""
-    } else {
-        "--no-1mm-upfront --score-min C,0,0"
-    };
+        if config.mismatch {
+            ""
+        } else {
+            "--no-1mm-upfront --score-min C,0,0"
+        };
 
     // Align to bowtie2 reference
     // Make mapped SAM file with header for faster analysis
-    let _ = Command::new("bowtie2")
+    match Command::new("bowtie2")
         .args([
             "--norc",
             "--threads",
@@ -143,27 +143,27 @@ pub fn bowtie2_analysis(
             "-S",
             sam_file,
         ])
-        .output()
-        .expect("Failed to run bowtie2");
+        .output() {
+            Ok(_) => (),
+            Err(err) => eprintln!("Failed to run bowtie2: {}", err)
+        };
 
     let check_result = is_sam_file_empty(sam_file);
 
     // Skip analysis of sample if no alignments are found
     match check_result {
-        Ok(_) => {
-            // Continue processing this sample
-        }
-        Err(e) => {
+        Ok(_) => (), // Continue processing this sample
+        Err(err) => {
             eprintln!(
                 "Error while checking {}: {}. Please check input samples and parameters.",
                 sam_file,
-                e
+                err
             );
         }
     }
 
     // Can use SAM file for deduplication, but a BAM file uses less memory
-    let _ = Command::new("samtools")
+    match Command::new("samtools")
         .args([
             "view",
             &format!("-@ {}", &config.num_threads).to_string(),
@@ -172,8 +172,10 @@ pub fn bowtie2_analysis(
             &format!("{}.UMI.bam", sample_name),
             sam_file,
         ])
-        .output()
-        .expect("Failed to run samtools to convert SAM to BAM");
+        .output() {
+            Ok(_) => (),
+            Err(err) => eprintln!("Failed to run samtools to convert SAM to BAM: {}", err)
+        };
 
     // Error correct UMIs in sample bam file
     let representative_umis: HashSet<Vec<u8>> = find_true_umis(
@@ -188,14 +190,14 @@ pub fn bowtie2_analysis(
     // Check the result
     match deduplication_result {
         Ok(_) => (),
-        Err(e) => eprintln!(
+        Err(err) => eprintln!(
             "An error occurred while deduplicating the sample {}: {}",
-            sample_name, e
+            sample_name, err
         ),
     }
 
     // Convert deduplicated bam file to a sam file
-    let _ = Command::new("samtools")
+    match Command::new("samtools")
         .args([
             "view",
             &format!("-@ {}", &config.num_threads).to_string(),
@@ -204,8 +206,10 @@ pub fn bowtie2_analysis(
             &format!("{}.{}.sam", sample_name, reference_name),
             &format!("{}.dedup.bam", sample_name),
         ])
-        .output()
-        .expect("Failed to run samtools to convert BAM to SAM");
+        .output() {
+            Ok(_) => (),
+            Err(err) => eprintln!("Failed to run samtools to convert BAM to SAM: {}", err)
+        };
 
     Ok(())
 }
@@ -254,31 +258,25 @@ pub fn rna_discovery_calculation(
     };
 
     let num_of_fastqs = trimmed_fastqs.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
-
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-
     // Set analysis reference, i.e., RNA type name, based on the user provided reference name
     let reference_name = Path::new(&config.alignment_reference)
-        .file_name().ok_or("err").unwrap()
-        .to_str().ok_or("err").unwrap();
+        .file_name()
+        .unwrap()
+        .to_string_lossy();
 
-    progress_br.set_message(format!(
+    let progress_br = create_progress_bar(
+        num_of_fastqs, 
+        format!(
         "Calculating the number of {} present...",
         reference_name
-    ));
+    ).to_string());
 
     // Set bowtie2 flag to keep unaligned reads
     let unaligned = if config.include_unaligned_reads {
-        ""
-    } else {
-        "--no-unal"
-    };
+            ""
+        } else {
+            "--no-unal"
+        };
 
     // Create file for writing metrics if necessary
     let mut writer: Option<csv_writer<File>> = None;
@@ -288,7 +286,7 @@ pub fn rna_discovery_calculation(
             "sample",
             "read count",
             "quality score",
-            &format!("{} {}", "percent", reference_name),
+            &format!("percent {}", reference_name),
             "unique RNA"
         ])?;
     } else if config.write_metrics && config.isomirs {
@@ -297,7 +295,7 @@ pub fn rna_discovery_calculation(
             "sample",
             "read count",
             "quality score",
-            &format!("{} {}", "percent", reference_name),
+            &format!("percent {}", reference_name),
             "percent isomiR",
             "unique RNA",
             "unique isomiRs"
@@ -313,60 +311,59 @@ pub fn rna_discovery_calculation(
                 sample_name.to_string(), 
                 config,
                 unaligned,
-                reference_name,
+                &reference_name,
             ) {
                 Ok(_) => (),
-                Err(err) => panic!("Error: {}", err)
+                Err(err) => panic!("Error during bowtie2 analysis: {}", err)
             }
         }
 
         // Check for isomiRs if desired
         let (isomir_counts, mirna_counts) = 
-        if config.isomirs {
-            // Get name of fasta file used to make bowtie2 reference
-            // Need to generate miRNA sequence HashMap for sequence alignment
-            let fasta_file = &capture_target_files(&format!("{}.f", config.alignment_reference), true)[0];
-            let fasta_path = Path::new(&config.alignment_reference).parent().unwrap().to_str().unwrap();
-            let full_fasta_path = format!("{}/{}", fasta_path, fasta_file);
-            let (mirna_hm, mirna_hm_mismatch) = 
-                create_rna_hashmap_from_fasta(&full_fasta_path, config).expect("Failed to read fasta file");
+            if config.isomirs {
+                // Get name of fasta file used to make bowtie2 reference
+                // Need to generate miRNA sequence HashMap for sequence alignment
+                let fasta_file = &capture_target_files(&format!("{}.f", config.alignment_reference), true)[0];
+                let fasta_path = Path::new(&config.alignment_reference).parent().unwrap().to_str().unwrap();
+                let full_fasta_path = format!("{}/{}", fasta_path, fasta_file);
+                let (mirna_hm, mirna_hm_mismatch) = 
+                    create_rna_hashmap_from_fasta(&full_fasta_path, config).expect("Failed to read fasta file");
 
-            match isomir_analysis(
-                fastq_file, 
-                sample_name, 
-                config, 
-                mirna_hm,
-                mirna_hm_mismatch,
-                config.max_isomir_diff
-            ) {
-                Ok((iso_counts, mirna_counts)) => (iso_counts, mirna_counts),
-                Err(err) => panic!("Error during isomiR analysis: {}", err)
-            }
-        } else {
-            (HashMap::new(), HashMap::new())
-        };
+                match isomir_analysis(
+                    fastq_file, 
+                    sample_name, 
+                    config, 
+                    mirna_hm,
+                    mirna_hm_mismatch
+                ) {
+                    Ok((iso_counts, mirna_counts)) => (iso_counts, mirna_counts),
+                    Err(err) => panic!("Error during isomiR analysis: {}", err)
+                }
+            } else {
+                (HashMap::new(), HashMap::new())
+            };
 
         // Generate data for the specific RNAs captured
         let unique_rnas = 
-        if !config.isomirs { 
-            match generate_rna_counts(
-                &format!("{}.{}.sam", sample_name, reference_name),
-                sample_name,
-                reference_name,
-            ) {
-                Ok(rna_names) => rna_names,
-                Err(err) => panic!("Error generating RNA counts: {}", err)
-            }.keys().len()
-        } else {
-            mirna_counts.keys().len()
-        };
+            if !config.isomirs { 
+                match generate_rna_counts(
+                    &format!("{}.{}.sam", sample_name, reference_name),
+                    sample_name,
+                    &reference_name,
+                ) {
+                    Ok(rna_names) => rna_names,
+                    Err(err) => panic!("Error generating RNA counts: {}", err)
+                }.keys().len()
+            } else {
+                mirna_counts.keys().len()
+            };
 
         let (unique_isomirs, total_isomir_count) = 
-        if config.isomirs {
-            (isomir_counts.keys().len(), isomir_counts.values().sum())
-        } else {
-            (0, 0)
-        };
+            if config.isomirs {
+                (isomir_counts.keys().len(), isomir_counts.values().sum())
+            } else {
+                (0, 0)
+            };
 
         // Set correct read count depending on if subsampling was performed
         if config.write_metrics {
@@ -382,7 +379,7 @@ pub fn rna_discovery_calculation(
             // Calculate the percentage of aligned reads
             let percent_alignment =
             if !config.isomirs {
-                match get_percent_alignment(sample_name, config.num_threads, reference_name, count) {
+                match get_percent_alignment(sample_name, config.num_threads, &reference_name, count) {
                     Ok(percent) => percent,
                     Err(err) => panic!("Error getting percent alignment: {}", err)
                 }
@@ -393,7 +390,10 @@ pub fn rna_discovery_calculation(
                 
             {
                 let avg_quality =
-                    average_read_quality(fastq_file).expect("Failed to calculate read quality");
+                    match average_read_quality(fastq_file) {
+                        Ok(qual) => qual,
+                        Err(err) => panic!("Error calculating read quality: {}", err)
+                    };
 
                 // Add percent isomiR alignment
                 if config.isomirs {
@@ -537,17 +537,18 @@ pub fn generate_rna_counts(
     ])?;
 
     // Sort the DataFrame in-place by the 'count' column
-    let _ = counts_df.sort_in_place(["count"], true, true);
+    match counts_df.sort_in_place(["count"], true, true) {
+        Ok(_) => (),
+        Err(err) => eprintln!("Error sorting counts dataframe: {}", err)
+    };
 
     // Create a new CSV file to store the DataFrame
-    let file = File::create(format!("{}_{}_counts.csv", sample_name, reference_name))
-        .expect("could not create file");
+    let file = File::create(format!("{}_{}_counts.csv", sample_name, reference_name))?;
 
     // Write the DataFrame to the CSV file with headers
     CsvWriter::new(file)
         .has_header(true)
-        .finish(&mut counts_df)
-        .unwrap();
+        .finish(&mut counts_df)?;
 
     Ok(rna_names)
 }
@@ -583,7 +584,7 @@ pub fn get_percent_alignment(
     count: u64,
 ) -> Result<f64, Box<dyn std::error::Error>> {
     // Get the number of RNA alignments in the sample SAM file
-    let output_result = Command::new("samtools")
+    let output = match Command::new("samtools")
         .args([
             "view",
             &format!("-@ {}", &num_threads),
@@ -591,18 +592,20 @@ pub fn get_percent_alignment(
             "-F 4",
             &format!("{}.{}.sam", sample_name, reference_name),
         ])
-        .output();
+        .output() {
+            Ok(output) => output,
+            Err(err) => panic!("Failed to execute samtools command: {}", err)
+        };
 
-    let output = output_result.expect("Failed to execute command");
     let stdout = match String::from_utf8(output.stdout) {
-        Ok(v) => v,
-        Err(e) => panic!("Invalid UTF-8 sequence: {}", e),
+        Ok(percent) => percent,
+        Err(err) => panic!("Invalid UTF-8 sequence: {}", err),
     };
 
     let parsed = match stdout.trim().parse::<f64>() {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Failed to parse output to f64: {:?}", e);
+        Ok(percent) => percent,
+        Err(err) => {
+            eprintln!("Failed to parse output to f64: {:?}", err);
             0.0 // Set read count to zero if there's no output
         }
     };

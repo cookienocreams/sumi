@@ -13,6 +13,8 @@ between UMIs, see Fu, Y., et al, (2018). Elimination of PCR duplicates in RNA-se
 small RNA-seq using unique molecular identifiers. https://doi.org/10.1186/s12864-018-4933-1. 
 It uses a five fold threshold, while the original algorithm uses a two fold count threshold.
 
+The UMI deduplication process is multithreaded to significantly speed up the process.
+
 ## Script dependencies
 - bowtie2
 - samtools

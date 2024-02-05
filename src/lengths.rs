@@ -1,13 +1,12 @@
+use crate::create_progress_bar;
 use crate::Command;
 use crate::File;
-use crate::ProgressBar;
-use crate::ProgressStyle;
+use crate::Write;
 use crate::Error;
 use crate::HashMap;
-use std::io::Write;
 use polars::prelude::*;
 
-/// Calculates and outputs the distribution of read lengths in input sam files.
+/// Calculate and output the distribution of read lengths in input sam files.
 ///
 /// This function iterates over each provided sam file, executes a sequence of command line
 /// operations (samtools, grep, cut) to calculate the distribution of read lengths, and
@@ -32,18 +31,10 @@ use polars::prelude::*;
 /// ```
 pub fn calculate_read_length_distribution(sam_files: Vec<String>) {
     let num_of_fastqs = sam_files.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
-
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    progress_br.set_message("Calculating read length distribution...");
+    let progress_br = create_progress_bar(num_of_fastqs, "Calculating read length distribution...".to_string());
 
     for sam in sam_files.iter() {
-        let sample_name = sam.split('.').next().unwrap();
+        let sample_name = sam.split('.').next().expect("Failed to split sample name");
 
         // Call samtools to calculate read length distribution
         let output = Command::new("samtools")
@@ -51,33 +42,39 @@ pub fn calculate_read_length_distribution(sam_files: Vec<String>) {
             .arg(sam)
             .stdout(std::process::Stdio::piped())
             .spawn()
-            .expect("Failed to execute command");
+            .expect("Failed to execute samtools command");
 
         let output2 = Command::new("grep")
             .arg("^RL")
             .stdin(output.stdout.unwrap())
             .stdout(std::process::Stdio::piped())
             .spawn()
-            .expect("Failed to execute command");
+            .expect("Failed to execute grep command");
 
         let output3 = Command::new("cut")
             .args(["-f", "2-"])
             .stdin(output2.stdout.unwrap())
             .output()
-            .expect("Failed to execute command");
+            .expect("Failed to execute cut command");
 
         let result = String::from_utf8_lossy(&output3.stdout);
 
         // Write read lenghts to output file
-        let file = File::create(format!("{}_read_lengths.csv", sample_name));
-        let _ = file
+        let file = File::create(format!("{}_read_lengths.tsv", sample_name));
+        match file
             .as_ref()
             .expect("Failed to write header")
-            .write_all(b"Length\tReads\n");
-        let _ = file
+            .write_all(b"Length\tReads\n") {
+                Ok(_) => (),
+                Err(err) => eprintln!("Error writing length file header: {}", err)
+            };
+        match file
             .as_ref()
             .expect("Failed to write length data")
-            .write_all(result.as_bytes());
+            .write_all(result.as_bytes()) {
+                Ok(_) => (),
+                Err(err) => eprintln!("Error writing length file data: {}", err)
+            };
 
         progress_br.inc(1);
     }
@@ -85,9 +82,9 @@ pub fn calculate_read_length_distribution(sam_files: Vec<String>) {
     progress_br.finish_with_message("Finished counting read lengths");
 }
 
-/// Calculates and outputs the distribution of aligned read lengths from deduplicated sequences.
+/// Calculate and output the distribution of aligned read lengths from deduplicated isomiR sequences.
 ///
-/// This function iterates over each sequence and uses map to calculate each sequence's 
+/// This function iterates over each isomiR sequence and uses map to calculate each sequence's 
 /// read length. It then writes the results to a new csv file named either 
 /// `<sample_name>_read_lengths.csv` or `<sample_name>_isomiR_read_lengths.csv`.
 ///
@@ -119,7 +116,7 @@ pub fn calculate_isomer_read_length_distribution(
 
     let mut sequence_lengths: HashMap<i32, i32> = HashMap::new();
     for seq in seq_lens {
-        *sequence_lengths.entry(seq.try_into().unwrap()).or_insert(0) += 1;
+        *sequence_lengths.entry(seq.try_into()?).or_insert(0) += 1;
     }
 
     let lengths: Vec<i32> = sequence_lengths.clone().into_keys().collect::<Vec<i32>>();

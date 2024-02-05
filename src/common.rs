@@ -1,10 +1,15 @@
-use crate::BufReader;
+use crate::{BufRead, Write, BufReader};
 use crate::File;
 use crate::HashMap;
-use std::io::BufRead;
-use std::io::Write;
 
-/// Function to find RNAs that are common in all given samples, and their counts, and RPM.
+// Type alias for three vectors returned by common RNAs function.
+pub type CommonRNAs = (
+    Vec<std::string::String>,
+    Vec<HashMap<std::string::String, i32>>,
+    Vec<HashMap<std::string::String, f64>>,
+);
+
+/// Function to find RNAs that are common in all given samples, their counts, and RPM.
 ///
 /// # Arguments
 ///
@@ -34,36 +39,31 @@ pub fn find_common_rnas(
     sample_names: Vec<String>,
     count_col: usize,
     rpm_col: usize,
-) -> (
-    Vec<std::string::String>,
-    Vec<HashMap<std::string::String, i32>>,
-    Vec<HashMap<std::string::String, f64>>,
-) {
+) -> CommonRNAs {
     let mut rna_info = vec![];
     let mut rpm_info = vec![];
-    let mut rna_names_dict: HashMap<String, usize> = HashMap::new(); // Changed i32 to usize
+    let mut rna_names_dict: HashMap<String, usize> = HashMap::new();
 
     for (file, _) in rna_counts_files
         .into_iter()
         .zip(sample_names.clone().into_iter())
     {
-        let file = File::open(file).unwrap(); // Use File::open instead of Reader::from_path
-        let reader = BufReader::new(file); // Use BufReader to read the file
+        let file = File::open(file).expect("Failed to open file"); // Use File::open instead of Reader::from_path
+        let reader = BufReader::new(file);
         let mut sample_rna_counts_dictionary = HashMap::new();
         let mut sample_rna_rpm_dictionary = HashMap::new();
 
         let mut lines = reader.lines();
         lines.next(); // Skip the first line which is the header
 
-        for line in lines {
-            let record = line.unwrap();
-            let fields: Vec<&str> = record.split(',').collect(); // Use split to split the record into fields
+        while let Some(Ok(record)) = lines.next() {
+            let fields: Vec<&str> = record.split(',').collect();
             let rna_name = fields[0].to_string();
-            let rna_count: usize = fields[count_col].parse().unwrap(); // Parse count as usize
-            let rpm: f64 = fields[rpm_col].parse().unwrap();
+            let rna_count: usize = fields[count_col].parse().unwrap_or(0);
+            let rpm: f64 = fields[rpm_col].parse().unwrap_or(0.0);
 
             // Store RNA count and RPM in the dictionaries for the current sample
-            sample_rna_counts_dictionary.insert(rna_name.clone(), rna_count as i32); // Convert rna_count to i32
+            sample_rna_counts_dictionary.insert(rna_name.clone(), rna_count as i32);
             sample_rna_rpm_dictionary.insert(rna_name.clone(), rpm);
 
             // Increment the count for the current RNA name in the global dictionary
@@ -130,18 +130,18 @@ pub fn write_common_rna_file(
     rpm_info: Vec<HashMap<String, f64>>,
     sample_names: Vec<String>,
     reference_name: &str,
-) {
+) -> std::io::Result<()> {
     let file_path = &format!("Common_{}s.tsv", reference_name);
     let file_path_rpm = &format!("Common_{}s_RPM.tsv", reference_name);
 
     // Open the output files
-    let mut common_rna_file = File::create(file_path).unwrap();
-    let mut common_rna_file_rpm = File::create(file_path_rpm).unwrap();
+    let mut common_rna_file = File::create(file_path)?;
+    let mut common_rna_file_rpm = File::create(file_path_rpm)?;
 
     // Write the headers to the output files
     let header: String = sample_names.join("\t");
-    writeln!(common_rna_file, "{}\t{}", reference_name, header).unwrap();
-    writeln!(common_rna_file_rpm, "{}\t{}", reference_name, header).unwrap();
+    writeln!(common_rna_file, "{}\t{}", reference_name, header)?;
+    writeln!(common_rna_file_rpm, "{}\t{}", reference_name, header)?;
 
     // For each RNA, write its counts and RPM values in all samples to the output files
     for rna in &rna_names {
@@ -156,7 +156,9 @@ pub fn write_common_rna_file(
         }
 
         // Write the output lines to the output files, removing the trailing tab character if present
-        writeln!(common_rna_file, "{}", counts_line.trim_end_matches('\t')).unwrap();
-        writeln!(common_rna_file_rpm, "{}", rpms_line.trim_end_matches('\t')).unwrap();
+        writeln!(common_rna_file, "{}", counts_line.trim_end_matches('\t'))?;
+        writeln!(common_rna_file_rpm, "{}", rpms_line.trim_end_matches('\t'))?;
     }
+
+    Ok(())
 }

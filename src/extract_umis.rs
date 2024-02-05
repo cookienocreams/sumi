@@ -5,10 +5,10 @@ use crate::DUAL_INDEX_REGEX;
 use crate::SINGLE_INDEX_REGEX;
 use crate::UMI_REGEX_QIAGEN;
 use crate::Error;
-use bio::io::fastq::{Reader, Record, Writer};
+use crate::BufReader;
+use crate::File;
+use bio::io::fastq::{self, Record, Writer};
 use flate2::bufread::MultiGzDecoder;
-use std::fs::File;
-use std::io::BufReader;
 use bio::scores::blosum62;
 use bio::alignment::pairwise::*;
 
@@ -52,35 +52,34 @@ pub fn extract_umis(
     let input_file = File::open(input_fastq)?;
 
     // Check if the file is gzipped or not
-    let reader: Box<dyn Read> = if is_gzipped(input_fastq)? {
+    let mut reader: Box<dyn Read> = if is_gzipped(input_fastq)? {
         Box::new(MultiGzDecoder::new(BufReader::new(input_file)))
     } else {
         Box::new(BufReader::new(input_file))
     };
+    let reader = BufReader::new(&mut reader);
+    let mut fastq_reader = fastq::Reader::from_bufread(reader).records();
 
     let mut writer = Writer::new(File::create(format!("{}.processed.fastq", sample_name))?);
 
     // Set alignment penalties for mismatch tolerant Qiagen adapter search
     let gap_open = -5;
     let gap_extend = -1;
-    let qiagen_umi_regex = Regex::new(UMI_REGEX_QIAGEN.as_str()).unwrap();
+    let qiagen_umi_regex = Regex::new(UMI_REGEX_QIAGEN.as_str())?;
 
-    for record_result in Reader::new(reader).records() {
-        let record = record_result?;
-
+    while let Some(Ok(record)) = fastq_reader.next() {
         let read_sequence = record.seq();
 
-        // Skip aligning reads with a 5' UMI if adapter is already trimmed in an error tolerant way using cutadapt.
         if adapter_mismatch && is_qiagen {
             // Align the Qiagen 3' adapter to the read sequence with mismatches and indels allowed
             let mut aligner = 
-            Aligner::with_capacity(
-                read_sequence.len(), 
-                adapter.len(), 
-                gap_open, 
-                gap_extend, 
-                &blosum62
-            );
+                Aligner::with_capacity(
+                    read_sequence.len(), 
+                    adapter.len(), 
+                    gap_open, 
+                    gap_extend, 
+                    &blosum62
+                );
             let alignment = aligner.local( read_sequence, adapter.as_bytes());
 
             let start = alignment.xend;
@@ -115,15 +114,14 @@ pub fn extract_umis(
         
     }
 
-    // Return Ok if everything went well
     Ok(())
 }
 
 /// Extract Unique Molecular Identifiers (UMIs) from a given sequence using regex.
 ///
-/// The UMIs are searched using a regex
-/// pattern related to known adapter sequences and can be located on either the 5' or 3' end. 
-/// The function is able to process sequences from both gzipped and uncompressed FASTQ files.
+/// The UMIs are searched for using a regex pattern related to known a adapter sequence 
+/// and can be located on either the 5' or 3' end. The function is able to process 
+/// sequences from both gzipped and uncompressed FASTQ files.
 ///
 /// # Arguments
 /// * `read_sequence` - The DNA sequence from the FASTQ record.
@@ -145,11 +143,7 @@ pub fn extract_umis(
 /// // This will write to `writer` the UMI-trimmed sequences with UMI appended to the record's description.
 /// ```
 ///
-/// Note: The UMI is extracted using the provided `umi_regex`. This function is flexible to different 
-/// UMI positions and patterns, unlike the previous version which expected UMIs to be the first 12 characters 
-/// of the sequence.
-///
-/// It's important to ensure that the regex pattern provided accurately captures the UMI without unintentionally 
+/// Note: It's important to ensure that the regex pattern provided accurately captures the UMI without unintentionally 
 /// capturing other portions of the sequence.
 pub fn regex_extraction (
     read_sequence: String, 
@@ -171,7 +165,7 @@ pub fn regex_extraction (
         // Check if there is more than one capture group in the regex
         if captures.len() > 2 {
             // Need length of full matched sequence, i.e., the UMI length + other bases
-            let umi_match = captures.get(0).unwrap();
+            let umi_match = captures.get(0).expect("Regex already checked");
             let mut ids = vec![];
             for i in 1..captures.len() {
                 let id = captures[i].to_owned();
@@ -182,7 +176,7 @@ pub fn regex_extraction (
             umi_len = umi_match.len();
         } else if captures.len() == 2 {
             // Only one capture group in the regex
-            let umi_match = captures.get(1).unwrap();
+            let umi_match = captures.get(1).expect("Regex already checked");
             umi_str = umi_match.as_str().to_string();
             umi_start = umi_match.start();
             umi_len = umi_match.len();

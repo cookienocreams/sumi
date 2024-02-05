@@ -33,12 +33,13 @@ use indicatif::{ProgressBar, ProgressStyle};
 use niffler::get_reader;
 use petgraph::graph::NodeIndex;
 use petgraph::Graph;
+use petgraph::visit::{Bfs, VisitMap, Visitable};
 use polars::prelude::*;
 use regex::Regex;
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::fs::{self, File};
-use std::io::{self, BufReader, BufWriter, Read};
+use std::io::{self, BufReader, BufWriter, Read, BufRead, Write};
 use std::path::Path;
 use std::process::Command;
 use std::str;
@@ -139,7 +140,7 @@ impl Config {
         let write_metrics = matches.is_present("write_metrics");
         let thresholds = match matches.values_of("thresholds") {
             Some(values) => values
-                .map(|x| x.parse::<usize>().expect("Threshold must be a number."))
+                .map(|val| val.parse::<usize>().expect("Threshold must be a number."))
                 .collect(),
             None => vec![1, 3, 5, 10],
         };
@@ -181,6 +182,42 @@ impl Config {
             adapter_mismatch,
         }
     }
+}
+
+/// Create and return a new progress bar.
+///
+/// It configures the progress bar with a default style and sets the initial message.
+///
+/// # Arguments
+///
+/// * `num_items` - The total number of items the progress bar will track. This sets
+/// the maximum value of the progress bar.
+/// * `message` - A message to display alongside the progress bar. This is used
+/// to provide context about the current operation.
+///
+/// # Returns
+///
+/// Returns a `ProgressBar` object configured with the specified number of items and
+/// initial message.
+///
+/// # Example
+///
+/// ```
+/// let progress_bar = create_progress_bar(12, "Processing files".to_string());
+/// // Displays [00:05:12] [##################################################] 12/12 Processing files
+/// ```
+pub fn create_progress_bar(num_items: u64, message: String) -> ProgressBar {
+    let progress_br = ProgressBar::new(num_items);
+
+    progress_br.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
+                .expect("Progress bar error")
+            .progress_chars("#>-"),
+    );
+    progress_br.set_message(message);
+
+    progress_br
 }
 
 /// List all files in the current directory that contain the target string.
@@ -257,7 +294,7 @@ pub fn is_gzipped(filename: &str) -> io::Result<bool> {
     Ok(buffer == [0x1f, 0x8b])
 }
 
-/// Extracts the length of the UMI (Unique Molecular Identifier) and intermediate bases 
+/// Extract the length of the UMI (Unique Molecular Identifier) and intermediate bases 
 /// from a given regex pattern.
 ///
 /// This function calculates the total length of the UMI by summing the lengths of capture groups
@@ -296,7 +333,7 @@ pub fn get_umi_length(input_regex: &str) -> u8 {
     if umi_sum != 12 { umi_sum } else { 12 }
 }
 
-/// Calculates the minimum length to allow post adapter trimming.
+/// Calculate the minimum length to allow post adapter trimming.
 ///
 /// This function extracts the length of UMI and intermediate bases from the given regex pattern,
 /// and then calculates the minimum length of a fragment taking the UMI length into account.
@@ -336,7 +373,7 @@ pub fn calculate_minimum_length(input_regex: &str, minimum_length: u8, is_qiagen
     }
 }
 
-/// Calculates the maximum length to allow post adapter trimming.
+/// Calculate the maximum length to allow post adapter trimming.
 ///
 /// This function extracts the length of UMI and intermediate bases from the given regex pattern,
 /// and then calculates the maximum length of a fragment taking the UMI length into account.
@@ -405,15 +442,7 @@ pub fn get_read_counts(
     sample_names: &Vec<String>,
 ) -> Result<HashMap<String, u64>, Box<dyn std::error::Error>> {
     let num_of_fastqs = input_fastqs.len() as u64;
-    let progress_br = ProgressBar::new(num_of_fastqs);
-
-    progress_br.set_style(
-        ProgressStyle::default_bar()
-            .template("{spinner:.green} [{elapsed_precise}] [{bar:50.cyan/blue}] {pos}/{len} {msg} ({percent}%)")
-                .expect("Progress bar error")
-            .progress_chars("#>-"),
-    );
-    progress_br.set_message("Counting the reads in each fastq files...");
+    let progress_br = create_progress_bar(num_of_fastqs, "Counting the reads in each fastq files...".to_string());
 
     let mut read_counts = HashMap::new();
 
@@ -460,7 +489,10 @@ pub fn remove_intermediate_files() {
     .collect();
 
     for file in files_to_delete {
-        let _ = fs::remove_file(&file);
+        match fs::remove_file(&file) {
+            Ok(_) => (),
+            Err(err) => eprintln!("Error removing intermediate files: {}", err)
+        };
     }
 }
 
@@ -703,13 +735,13 @@ pub fn main() -> io::Result<()> {
             Ok(compressed) => {
                 if !compressed {
                     panic!(
-                        "File {} is not gzipped. Please gzip the input files.",
+                        "{} is not gzipped. Please gzip the input files.",
                         fastq
                     );
                 }
             }
             Err(err) => panic!(
-                "Failed to check if file {} is gzipped due to error: {}",
+                "Failed to check if {} is gzipped due to error: {}",
                 fastq, err
             ),
         };
@@ -736,12 +768,15 @@ pub fn main() -> io::Result<()> {
     // Subsample fastqs if desired
     if config.subsample_to_lowest {
         // Subsample to the smallest fastq file
-        let _ = subsample_fastqs(
+        match subsample_fastqs(
             fastq_files.clone(),
             sample_names.clone(),
             None,
             config.rng_seed,
-        );
+        ) {
+            Ok(_) => (),
+            Err(err) => eprintln!("Error subsampling file: {}", err)
+        };
         let subsamples_fastq_files = capture_target_files("_subsample.fastq", false);
 
         // Trim adapters from the reads and remove UMIs
@@ -758,12 +793,15 @@ pub fn main() -> io::Result<()> {
         )
     } else if let Some(n_reads) = config.subsample_fastqs {
         // Subsample to the specified number of reads
-        let _ = subsample_fastqs(
+        match subsample_fastqs(
             fastq_files.clone(),
             sample_names.clone(),
             Some(n_reads),
             config.rng_seed,
-        );
+        ) {
+            Ok(_) => (),
+            Err(err) => eprintln!("Error subsampling file: {}", err)
+        };
         let subsamples_fastq_files = capture_target_files("_subsample.fastq", false);
 
         // Trim adapters from the reads and remove UMIs
@@ -810,45 +848,57 @@ pub fn main() -> io::Result<()> {
         calculate_read_length_distribution(sam_files);
     }
 
-    let _ = threshold_count(
+    match threshold_count(
         rna_counts_files.clone(),
         config.thresholds,
         sample_names.clone(),
         reference,
-    );
+    ) {
+        Ok(_) => (),
+        Err(err) => eprintln!("Error counting RNA thresholds file: {}", err)
+    };
 
     let threshold_files = capture_target_files("_threshold_count_sum.csv", false);
 
-    let _ = combine_threshold_counts(
+    match combine_threshold_counts(
         threshold_files,
         "RNA_threshold_counts.csv".to_string(),
         sample_names.clone(),
-    );
+    ) {
+        Ok(_) => (),
+        Err(err) => eprintln!("Error combining RNA threshold files: {}", err)
+    };
 
     let (full_rna_names_list, rna_info, rpm_info) =
         find_common_rnas(rna_counts_files, sample_names.clone(), 1, 2);
         
-    write_common_rna_file(
+    match write_common_rna_file(
         full_rna_names_list.clone(),
         rna_info,
         rpm_info,
         sample_names.clone(),
         reference_name,
-    );
+    ) {
+        Ok(_) => (),
+        Err(err) => eprintln!("Error writing common RNA file: {}", err)
+    };
 
     if config.isomirs {
         let rna_counts_files = capture_target_files("_isomiR_counts", false);
 
         let (full_rna_names_list, rna_info, rpm_info) =
-        find_common_rnas(rna_counts_files, sample_names.clone(), 2, 3);
+            find_common_rnas(rna_counts_files, sample_names.clone(), 2, 3);
         
-        write_common_rna_file(
+        match write_common_rna_file(
             full_rna_names_list.clone(),
             rna_info,
             rpm_info,
             sample_names,
             "isomiR",
-        );
+        ) {
+            Ok(_) => (),
+            Err(err) => eprintln!("Error writing common RNA file: {}", err)
+        };
     }
 
     // Remove intermediate files, such as bam and sam files, unless otherwise specified
