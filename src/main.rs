@@ -31,15 +31,13 @@
 //! [Rust website](https://www.rust-lang.org/tools/install). Once Rust is installed, you can build the library as follows:
 //!
 //! ```bash
-//! git clone https://github.com/cookienocreams/sumi.git sumi
-//! cd sumi
-//! cargo build --release
+//! cargo install sumi
 //! ```
 //!
-//! The compiled binary will be located in `./target/release/`. Make it executable with the following command:
+//! The compiled binary will be located in `~/.cargo/bin/`. Make it executable with the following command:
 //!
 //! ```bash
-//! chmod +x ./target/release/sumi
+//! chmod +x ~/.cargo/bin/sumi
 //! ```
 //!
 //! # Usage
