@@ -6,7 +6,7 @@ license = "MIT"
 description = "A simple analysis for small RNA libraries with UMIs."
 repository = "https://github.com/cookienocreams/sumi"
 readme = "README.md"
-keywords = ["RNA", "rna", "miRNA", "mirna", "NGS"]
+keywords = ["sRNA", "srna", "miRNA", "mirna", "qiagen"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
