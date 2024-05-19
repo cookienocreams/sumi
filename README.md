@@ -24,23 +24,22 @@ The UMI deduplication process is multithreaded to significantly speed up the pro
 
 Create executable to run on local machine using the compiled binary.
 
-
 You will need to have Rust installed on your computer before starting. Rust can be installed from here: [Install Rust](https://www.rust-lang.org/tools/install)
 
-Download the git repository using cargo.
+Install the binary using cargo.
 ```bash
 cargo install sumi
 ```
 
 The compiled binary will be located in `~/.cargo/bin/`. Make it executable with the following command:
 ```bash
-chmod +x ./target/release/sumi 
+chmod +x ~/.cargo/bin/sumi 
 ```
 
 There are numerous options that can be changed if desired. Use `-h` or `--help` flags to see options.
 
 ```bash
-./target/release/sumi --help
+./sumi --help
 ```
 
 ## Basic usage
