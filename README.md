@@ -27,20 +27,12 @@ Create executable to run on local machine using the compiled binary.
 
 You will need to have Rust installed on your computer before starting. Rust can be installed from here: [Install Rust](https://www.rust-lang.org/tools/install)
 
-Download the git repository using git or manually and change into the repository folder.
+Download the git repository using cargo.
 ```bash
-git clone https://github.com/cookienocreams/sumi.git sumi
-cd sumi
+cargo install sumi
 ```
 
-The next step is to install all libraries and their dependencies and compile the code into a binary.
-
-```rust
-cargo build --release
-```
-
-Before the binary can be used, it must be made executable. The compliled binary will be in `./target/release/`.
-
+The compiled binary will be located in `~/.cargo/bin/`. Make it executable with the following command:
 ```bash
 chmod +x ./target/release/sumi 
 ```
