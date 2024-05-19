@@ -1,3 +1,98 @@
+//! sumi: A Simple Small RNA UMI Analysis Library
+//!
+//! This library provides tools for the analysis of small RNA libraries with Unique Molecular Identifiers (UMIs).
+//! It is designed to be simple and efficient, enabling researchers to check for the presence of isomiRs in addition
+//! to canonical miRNAs. The library performs UMI error correction and deduplication using a modified directional
+//! graph algorithm, making it a robust choice for small RNA sequencing analysis.
+//!
+//! # Features
+//!
+//! - **UMI Error Correction and Deduplication**: Uses a directional graph algorithm that allows for a Hamming Distance
+//!   of 1 between UMIs, implementing a five-fold threshold for deduplication. This method is based on the work by Fu, Y., et al.
+//!   (2018) for eliminating PCR duplicates in RNA-seq and small RNA-seq.
+//! - **IsomiR Detection**: Checks for the presence of isomiRs in addition to canonical miRNAs, providing separate percentages
+//!   for each.
+//! - **Multithreading**: The deduplication process is multithreaded to significantly speed up the analysis.
+//! - **Flexible UMI Handling**: Supports various UMI configurations and allows for specifying UMI positions and structures
+//!   using regular expressions.
+//!
+//! # Dependencies
+//!
+//! This library relies on the following external tools:
+//! - `bowtie2`: For sequence alignment.
+//! - `samtools`: For processing SAM/BAM files.
+//! - `cutadapt`: For trimming adapter sequences.
+//!
+//! Ensure these dependencies are installed and accessible in your system's PATH.
+//!
+//! # Installation
+//!
+//! To use this library, you need to have Rust installed on your machine. You can install Rust from the official
+//! [Rust website](https://www.rust-lang.org/tools/install). Once Rust is installed, you can build the library as follows:
+//!
+//! ```bash
+//! git clone https://github.com/cookienocreams/sumi.git sumi
+//! cd sumi
+//! cargo build --release
+//! ```
+//!
+//! The compiled binary will be located in `./target/release/`. Make it executable with the following command:
+//!
+//! ```bash
+//! chmod +x ./target/release/sumi
+//! ```
+//!
+//! # Usage
+//!
+//! After building the library, you can use the `sumi` executable for various analyses. Below are some example usages:
+//!
+//! ## Basic Analysis
+//!
+//! To analyze files with a miRNA bowtie2 reference located in `/home/user/data/`, a 12 bp UMI on the 5' end with the
+//! structure "NNNNNCCANNTCANNNNN", and using 8 threads:
+//!
+//! ```bash
+//! cd fastqs
+//! ./sumi --reference /home/user/data/miRNA --umi-regex "^(.{5})CCA(.{2})TCA(.{5})" --threads 8
+//! ```
+//!
+//! ## Checking for IsomiRs
+//!
+//! To check for isomiRs and generate counts and alignment information, run the following command. This will separate
+//! the percentages of isomiR and canonical miRNAs:
+//!
+//! ```bash
+//! ./sumi --reference /home/user/data/miRNA --isomir --write-metrics
+//! ```
+//!
+//! ## 3' End UMI Analysis with Mismatch
+//!
+//! To analyze libraries with a 12 bp 3' UMI, allowing a 1 bp mismatch during alignment:
+//!
+//! ```bash
+//! ./sumi --reference /home/user/data/miRNA --3p --umi-regex "(.{12}$)" --mismatch
+//! ```
+//!
+//! ## Qiagen Library Analysis
+//!
+//! For analyzing isomiRs in Qiagen libraries, use this command. There is no need to specify the UMI is on the 3' end or a regex pattern:
+//!
+//! ```bash
+//! ./sumi --reference /home/user/data/miRNA --isomir --qiagen
+//! ```
+//!
+//! # Command-Line Options
+//!
+//! The `sumi` executable provides several command-line options to customize the analysis. Use the `-h` or `--help` flags
+//! to see all available options:
+//!
+//! ```bash
+//! ./target/release/sumi --help
+//! ```
+//!
+//! This module aims to facilitate the analysis of small RNA libraries, making it easier to handle UMIs, detect isomiRs,
+//! and ensure accurate quantification of miRNAs.
+
 pub mod common;
 pub mod extract_umis;
 pub mod graph;
